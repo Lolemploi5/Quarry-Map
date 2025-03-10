@@ -8,9 +8,28 @@ import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 
 class CommuneAdapter(
-    private val communes: List<String>,
+    private var communes: List<String>,
     private val onClick: (String) -> Unit
 ) : RecyclerView.Adapter<CommuneAdapter.CommuneViewHolder>() {
+    
+    private var filteredCommunes: List<String> = communes
+    
+    fun updateData(newCommunes: List<String>) {
+        communes = newCommunes
+        filteredCommunes = newCommunes
+        notifyDataSetChanged()
+    }
+    
+    fun filter(query: String) {
+        filteredCommunes = if (query.isEmpty()) {
+            communes
+        } else {
+            communes.filter {
+                it.lowercase().contains(query.lowercase())
+            }
+        }
+        notifyDataSetChanged()
+    }
 
     inner class CommuneViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val communeName: TextView = itemView.findViewById(R.id.communeName)
@@ -28,8 +47,8 @@ class CommuneAdapter(
     }
 
     override fun onBindViewHolder(holder: CommuneViewHolder, position: Int) {
-        holder.bind(communes[position])
+        holder.bind(filteredCommunes[position])
     }
 
-    override fun getItemCount() = communes.size
+    override fun getItemCount() = filteredCommunes.size
 }

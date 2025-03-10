@@ -68,6 +68,9 @@ dependencies {
     // Glide pour les images
     implementation("com.github.bumptech.glide:glide:4.16.0")
     kapt("com.github.bumptech.glide:compiler:4.16.0")
+    
+    // Support SVG pour Glide
+    implementation("com.caverock:androidsvg-aar:1.4")
 
     // Test
     testImplementation("junit:junit:4.13.2")
