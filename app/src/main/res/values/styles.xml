@@ -3,40 +3,98 @@
         <!-- Couleur du texte de la SearchView -->
         <item name="android:textColor">@color/black</item>
         <!-- Couleur du texte pour le hint -->
-        <item name="android:textColorHint">@color/gray</item>
+        <item name="android:textColorHint">#757575</item>
         <!-- Couleur du fond de la SearchView -->
-        <item name="queryBackground">@color/white</item>
-        <item name="submitBackground">@color/white</item>
+        <item name="queryBackground">@android:color/transparent</item>
+        <item name="submitBackground">@android:color/transparent</item>
         <!-- Hauteur et marges -->
         <item name="android:layout_height">48dp</item>
         <item name="android:layout_margin">8dp</item>
+        <!-- Style du texte -->
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontFamily">@font/roboto_regular</item>
+    </style>
+    
+    <style name="CardStyle">
+        <item name="android:layout_margin">8dp</item>
+        <item name="cardCornerRadius">12dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+        <item name="rippleColor">#1F000000</item>
+        <item name="cardBackgroundColor">@android:color/white</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="strokeColor">#EEEEEE</item>
     </style>
 
-    <style name="DialogButtonStyle" parent="Widget.Material3.Button.TextButton">
+    <style name="DialogButtonStyle" parent="Widget.MaterialComponents.Button.TextButton">
         <item name="android:backgroundTint">?attr/colorPrimary</item>
         <item name="android:textColor">?attr/colorOnPrimary</item>
         <item name="android:padding">12dp</item>
         <item name="android:layout_margin">8dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
     </style>
 
-    <style name="Widget.Button" parent="Widget.Material3.Button">
+    <style name="Widget.Button" parent="Widget.MaterialComponents.Button">
         <item name="android:backgroundTint">@color/primary</item>
         <item name="android:textColor">@android:color/white</item>
         <item name="android:fontFamily">@font/roboto_regular</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:padding">16dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="rippleColor">#33FFFFFF</item>
+        <item name="elevation">2dp</item>
     </style>
 
-    <style name="Widget.Button.Cancel" parent="Widget.Material3.Button">
+    <style name="Widget.Button.Cancel" parent="Widget.MaterialComponents.Button">
         <item name="android:backgroundTint">@color/error</item>
         <item name="android:textColor">@android:color/white</item>
         <item name="android:fontFamily">@font/roboto_regular</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 
-    <style name="CustomDialogTheme" parent="Theme.MaterialComponents.Dialog">
-        <item name="android:windowBackground">@drawable/dialog_background</item>
-        <item name="android:windowMinWidthMajor">75%</item> <!-- 75% de la largeur de l'écran -->
-        <item name="android:windowMinWidthMinor">75%</item> <!-- 75% de la hauteur de l'écran -->
-        <item name="android:windowIsFloating">true</item>
+    <style name="MaterialAlertDialog.Rounded" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.MaterialAlertDialog.Rounded</item>
+        <item name="android:windowMinWidthMajor">75%</item>
+        <item name="android:windowMinWidthMinor">75%</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/MaterialAlertDialog.TitleText</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/MaterialAlertDialog.BodyText</item>
+        <item name="buttonBarPositiveButtonStyle">@style/MaterialAlertDialog.Button</item>
+        <item name="buttonBarNegativeButtonStyle">@style/MaterialAlertDialog.Button</item>
+    </style>
+    
+    <style name="MaterialAlertDialog.TitleText" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">#212121</item>
+        <item name="android:fontFamily">@font/roboto_medium</item>
+    </style>
+    
+    <style name="MaterialAlertDialog.BodyText" parent="MaterialAlertDialog.MaterialComponents.Body.Text">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">#757575</item>
+        <item name="android:fontFamily">@font/roboto_regular</item>
+    </style>
+    
+    <style name="MaterialAlertDialog.Button" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">@font/roboto_medium</item>
+        <item name="rippleColor">?attr/colorPrimary</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
     </style>
 
+    <style name="ShapeAppearanceOverlay.MaterialAlertDialog.Rounded" parent="">
+        <item name="cornerSize">16dp</item>
+    </style>
+
+    <style name="DialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/slide_up</item>
+        <item name="android:windowExitAnimation">@anim/slide_down</item>
+    </style>
 
 </resources>

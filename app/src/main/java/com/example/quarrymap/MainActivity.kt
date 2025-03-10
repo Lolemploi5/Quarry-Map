@@ -5,9 +5,9 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
+
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -33,6 +33,9 @@ class MainActivity : AppCompatActivity() {
     
     // Chemin de téléchargement personnalisé
     private var customDownloadPath: String? = null
+    
+    // Liste complète des communes
+    private var allCommunes: List<String> = emptyList()
 
     private val folderPickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
         if (uri != null) {
@@ -72,6 +75,7 @@ class MainActivity : AppCompatActivity() {
             // Lancement de l'activité CommuneActivity avec le nom de la commune
             val intent = Intent(this, CommuneActivity::class.java).apply {
                 putExtra(CommuneActivity.EXTRA_COMMUNE, commune)
+                putExtra("EXTRA_BASE_PATH", getDownloadPath())
             }
             startActivity(intent)
         }
@@ -81,6 +85,45 @@ class MainActivity : AppCompatActivity() {
         binding.fab.setOnClickListener {
             showUploadOptions()
         }
+        
+        // Configurer la recherche
+        binding.searchView.setOnQueryTextListener(object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                filterCommunes(query)
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                filterCommunes(newText)
+                return true
+            }
+        })
+    }
+    
+    private fun filterCommunes(query: String?) {
+        (binding.recyclerView.adapter as? CommuneAdapter)?.filter(query ?: "")
+    }
+    
+    fun onSearchCardClick(view: View) {
+        // Animation de l'élévation de la carte
+        view.animate()
+            .translationZ(8f)
+            .setDuration(150)
+            .withEndAction {
+                binding.searchView.requestFocus()
+                binding.searchView.isIconified = false
+                
+                // Afficher le clavier virtuel
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.showSoftInput(binding.searchView.findFocus(), InputMethodManager.SHOW_IMPLICIT)
+                
+                view.animate()
+                    .translationZ(0f)
+                    .setStartDelay(200)
+                    .setDuration(100)
+                    .start()
+            }
+            .start()
     }
     
     private fun showUploadOptions() {
@@ -503,21 +546,7 @@ class MainActivity : AppCompatActivity() {
         jsonPickerLauncher.launch("application/json")
     }
     
-    // Gestion du menu de la barre d'outils
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-    
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_upload -> {
-                showUploadOptions()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
+
     
     // Chargement de la liste des communes
     private fun loadCommunesList() {
@@ -526,25 +555,18 @@ class MainActivity : AppCompatActivity() {
         val communesDir = File(basePath)
         
         if (communesDir.exists() && communesDir.isDirectory) {
-            val communesList = communesDir.listFiles()
+            allCommunes = communesDir.listFiles()
                 ?.filter { it.isDirectory }
                 ?.map { it.name }
                 ?.sorted() ?: emptyList()
             
             // Mise à jour de l'adaptateur avec la liste des communes
-            binding.recyclerView.adapter = CommuneAdapter(communesList) { commune ->
-                val intent = Intent(this, CommuneActivity::class.java).apply {
-                    putExtra(CommuneActivity.EXTRA_COMMUNE, commune)
-                    // Passer également le chemin personnalisé à CommuneActivity
-                    putExtra("EXTRA_BASE_PATH", basePath)
-                }
-                startActivity(intent)
-            }
+            (binding.recyclerView.adapter as? CommuneAdapter)?.updateData(allCommunes)
             
-            if (communesList.isEmpty()) {
+            if (allCommunes.isEmpty()) {
                 Toast.makeText(this, "Aucune commune trouvée. Importez des données d'abord.", Toast.LENGTH_LONG).show()
             } else {
-                Log.d("MainActivity", "${communesList.size} communes trouvées")
+                Log.d("MainActivity", "${allCommunes.size} communes trouvées")
             }
         } else {
             communesDir.mkdirs()
