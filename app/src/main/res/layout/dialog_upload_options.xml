@@ -1,39 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="24dp"
     android:background="@drawable/dialog_background"
-    android:gravity="center"
-    android:layout_gravity="center">
+    android:minWidth="320dp">
 
     <TextView
         android:id="@+id/dialogTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Choose Import Method"
+        android:text="Options d'importation"
+        android:textSize="18sp"
+        android:textStyle="bold"
         android:gravity="center"
-        android:paddingBottom="16dp"
-        android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
+        android:paddingBottom="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Chemin de téléchargement"
+        android:textSize="14sp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <EditText
+            android:id="@+id/editTextDownloadPath"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:inputType="text"
+            android:hint="Chemin de téléchargement"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/buttonSetPath"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Modifier"
+            android:textSize="12sp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Méthode d'importation"
+        android:textSize="14sp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp" />
 
     <Button
         android:id="@+id/button_import_json"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Import with JSON" />
+        android:text="Importer depuis un fichier JSON"
+        android:layout_marginBottom="8dp" />
 
     <Button
         android:id="@+id/button_import_folder"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Import from Folder" />
-
-    <Button
-        android:id="@+id/button_cancel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Cancel"
-        android:backgroundTint="@color/error"
-        android:textColor="@android:color/white" />
+        android:text="Importer depuis un dossier"
+        android:layout_marginBottom="8dp" />
 </LinearLayout>
