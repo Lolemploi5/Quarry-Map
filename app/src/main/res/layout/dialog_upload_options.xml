@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/dialog_background"
+    android:gravity="center"
+    android:layout_gravity="center">
+
+    <TextView
+        android:id="@+id/dialogTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Choose Import Method"
+        android:gravity="center"
+        android:paddingBottom="16dp"
+        android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
+
+    <Button
+        android:id="@+id/button_import_json"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Import with JSON" />
+
+    <Button
+        android:id="@+id/button_import_folder"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Import from Folder" />
+
+    <Button
+        android:id="@+id/button_cancel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cancel"
+        android:backgroundTint="@color/error"
+        android:textColor="@android:color/white" />
+</LinearLayout>

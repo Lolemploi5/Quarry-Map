@@ -1,0 +1,29 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Thème sombre unique pour l'application -->
+    <style name="Theme.QuarryMap" parent="Theme.Material3.DayNight">
+        <!-- Désactive l'ActionBar classique -->
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <!-- Couleurs principales -->
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <item name="colorOnPrimary">@color/white</item>
+
+        <!-- Couleurs de fond -->
+        <item name="android:windowBackground">@color/black</item>
+        <item name="colorSurface">@color/black</item>
+        <item name="colorOnSurface">@color/white</item>
+
+        <!-- Couleurs d'erreur -->
+        <item name="colorError">@color/red_700</item>
+        <item name="colorOnError">@color/white</item>
+
+        <!-- Couleurs des barres système -->
+        <item name="android:statusBarColor">@color/purple_700</item>
+        <item name="android:navigationBarColor">@color/purple_500</item>
+        <item name="dialogTheme">@style/ThemeOverlay.Material3.Dialog</item>
+
+    </style>
+
+</resources>

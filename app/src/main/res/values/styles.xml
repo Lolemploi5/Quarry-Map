@@ -1,0 +1,42 @@
+<resources>
+    <style name="SearchViewStyle">
+        <!-- Couleur du texte de la SearchView -->
+        <item name="android:textColor">@color/black</item>
+        <!-- Couleur du texte pour le hint -->
+        <item name="android:textColorHint">@color/gray</item>
+        <!-- Couleur du fond de la SearchView -->
+        <item name="queryBackground">@color/white</item>
+        <item name="submitBackground">@color/white</item>
+        <!-- Hauteur et marges -->
+        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_margin">8dp</item>
+    </style>
+
+    <style name="DialogButtonStyle" parent="Widget.Material3.Button.TextButton">
+        <item name="android:backgroundTint">?attr/colorPrimary</item>
+        <item name="android:textColor">?attr/colorOnPrimary</item>
+        <item name="android:padding">12dp</item>
+        <item name="android:layout_margin">8dp</item>
+    </style>
+
+    <style name="Widget.Button" parent="Widget.Material3.Button">
+        <item name="android:backgroundTint">@color/primary</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:fontFamily">@font/roboto_regular</item>
+    </style>
+
+    <style name="Widget.Button.Cancel" parent="Widget.Material3.Button">
+        <item name="android:backgroundTint">@color/error</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:fontFamily">@font/roboto_regular</item>
+    </style>
+
+    <style name="CustomDialogTheme" parent="Theme.MaterialComponents.Dialog">
+        <item name="android:windowBackground">@drawable/dialog_background</item>
+        <item name="android:windowMinWidthMajor">75%</item> <!-- 75% de la largeur de l'écran -->
+        <item name="android:windowMinWidthMinor">75%</item> <!-- 75% de la hauteur de l'écran -->
+        <item name="android:windowIsFloating">true</item>
+    </style>
+
+
+</resources>

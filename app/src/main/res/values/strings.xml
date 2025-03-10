@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Quarry Map</string>
+    <string name="description_image_viewer">Affichage plein écran de la planche</string>
+</resources>
