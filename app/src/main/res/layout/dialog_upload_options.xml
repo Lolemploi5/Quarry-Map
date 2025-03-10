@@ -1,39 +1,242 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="24dp"
     android:background="@drawable/dialog_background"
-    android:gravity="center"
-    android:layout_gravity="center">
+    android:minWidth="320dp">
 
     <TextView
         android:id="@+id/dialogTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Choose Import Method"
-        android:gravity="center"
-        android:paddingBottom="16dp"
-        android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
+        android:text="Importer des plans"
+        android:textSize="24sp"
+        android:textColor="#212121"
+        android:fontFamily="@font/roboto_medium"
+        android:gravity="start"
+        android:paddingBottom="24dp" />
 
-    <Button
-        android:id="@+id/button_import_json"
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Import with JSON" />
+        android:text="Choisissez où enregistrer vos plans"
+        android:textSize="16sp"
+        android:textColor="#757575"
+        android:layout_marginBottom="12dp" />
 
-    <Button
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="2dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="#EEEEEE"
+        app:cardBackgroundColor="#F8F9FA">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Emplacement des plans"
+                android:textSize="16sp"
+                android:textColor="#212121"
+                android:fontFamily="@font/roboto_medium"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxStrokeColor="?attr/colorPrimary"
+                app:hintTextColor="?attr/colorPrimary"
+                app:endIconMode="clear_text"
+                app:endIconTint="#757575"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editTextDownloadPath"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Chemin de téléchargement"
+                    android:inputType="text"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/roboto_regular"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonSetPath"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Modifier"
+                android:textAllCaps="false"
+                android:textSize="14sp"
+                android:fontFamily="@font/roboto_medium"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:minHeight="40dp"
+                app:icon="@android:drawable/ic_menu_edit"
+                app:iconTint="?attr/colorPrimary"
+                app:iconSize="18dp"
+                app:iconPadding="8dp"
+                app:cornerRadius="20dp"
+                app:strokeColor="?attr/colorPrimary"
+                app:rippleColor="#1F000000"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Choisir une méthode d'importation"
+        android:textSize="16sp"
+        android:textColor="#212121"
+        android:fontFamily="@font/roboto_medium"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Sélectionnez comment vous souhaitez importer vos plans"
+        android:textSize="14sp"
+        android:textColor="#757575"
+        android:layout_marginBottom="16dp" />
+
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/button_import_folder"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Import from Folder" />
+        android:layout_marginBottom="12dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:stateListAnimator="@animator/card_state_list_anim"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="2dp"
+        app:rippleColor="#33000000"
+        app:strokeWidth="1dp"
+        app:strokeColor="#EEEEEE"
+        app:cardBackgroundColor="#F8F9FA">
 
-    <Button
-        android:id="@+id/button_cancel"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="20dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="16dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="?attr/colorPrimary">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:src="@android:drawable/ic_menu_add"
+                    app:tint="@android:color/white" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Importer depuis un dossier"
+                    android:textSize="16sp"
+                    android:textColor="#212121"
+                    android:fontFamily="@font/roboto_medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Sélectionnez un dossier contenant vos plans"
+                    android:textSize="14sp"
+                    android:textColor="#757575"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/button_import_json"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Cancel"
-        android:backgroundTint="@color/error"
-        android:textColor="@android:color/white" />
+        android:layout_marginBottom="8dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="2dp"
+        app:rippleColor="#33000000"
+        app:strokeWidth="1dp"
+        app:strokeColor="#EEEEEE"
+        app:cardBackgroundColor="#F8F9FA">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="20dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="16dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="?attr/colorPrimary">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:src="@android:drawable/ic_menu_save"
+                    app:tint="@android:color/white" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Importer depuis un fichier JSON"
+                    android:textSize="16sp"
+                    android:textColor="#212121"
+                    android:fontFamily="@font/roboto_medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Sélectionnez un fichier JSON contenant vos données"
+                    android:textSize="14sp"
+                    android:textColor="#757575"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 </LinearLayout>

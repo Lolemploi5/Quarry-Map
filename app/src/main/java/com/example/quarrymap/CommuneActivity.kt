@@ -1,6 +1,9 @@
 package com.example.quarrymap
 
 import android.os.Bundle
+import android.os.Environment
+import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -10,26 +13,102 @@ class CommuneActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: ImageAdapter
     private val images = mutableListOf<String>()
+    private val TAG = "CommuneActivity"
+
+    companion object {
+        const val EXTRA_COMMUNE = "COMMUNE"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_commune)
 
-        val communeName = intent.getStringExtra("COMMUNE") ?: return
+        val communeName = intent.getStringExtra(EXTRA_COMMUNE)
+        if (communeName == null) {
+            Log.e(TAG, "Aucun nom de commune fourni")
+            Toast.makeText(this, "Erreur: Aucun nom de commune fourni", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+        
+        // Récupérer le chemin de base personnalisé, s'il est fourni
+        val basePath = intent.getStringExtra("EXTRA_BASE_PATH")
+        
         title = communeName
 
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
 
-        // Charger les images de la commune
-        val baseFolder = File("/storage/emulated/0/Documents/plans_triés/$communeName")
-        if (baseFolder.exists()) {
-            images.addAll(baseFolder.listFiles()!!.filter { it.extension in listOf("jpg", "png") }.map { it.absolutePath })
-        }
-
+        // Charger les images de la commune en utilisant le chemin spécifié
+        loadImagesForCommune(communeName, basePath)
+        
         adapter = ImageAdapter(images) { imagePath ->
             ImageViewerActivity.start(this, imagePath)
         }
         recyclerView.adapter = adapter
+    }
+    
+    private fun loadImagesForCommune(communeName: String, customBasePath: String? = null) {
+        try {
+            // Déterminer le dossier de base à utiliser
+            val baseFolder = if (customBasePath != null) {
+                // Utiliser le chemin personnalisé fourni par MainActivity
+                File(customBasePath, communeName)
+            } else {
+                // Utiliser le chemin par défaut dans le stockage externe
+                File(getExternalFilesDir(null), "plans_triés/$communeName")
+            }
+                
+            Log.d(TAG, "Recherche d'images dans: ${baseFolder.absolutePath}")
+            
+            if (baseFolder.exists() && baseFolder.isDirectory) {
+                val imageFiles = baseFolder.listFiles()
+                
+                if (imageFiles != null && imageFiles.isNotEmpty()) {
+                    // Lister tous les fichiers pour le débogage
+                    Log.d(TAG, "Fichiers trouvés dans le dossier:")
+                    imageFiles.forEach { file ->
+                        Log.d(TAG, "- ${file.name} (${file.extension}, ${file.length()} bytes, isFile=${file.isFile})")
+                    }
+                    
+                    // Inclure tous les formats d'image courants
+                    val supportedExtensions = listOf(
+                        "jpg", "jpeg", "png", "gif", "bmp", "webp",  // Formats bitmap
+                        "svg", "xml", "vector"                          // Formats vectoriels
+                    )
+                    
+                    // Vérifier explicitement les fichiers JPG pour le débogage
+                    val jpgFiles = imageFiles.filter { it.isFile && (it.extension.lowercase() == "jpg" || it.extension.lowercase() == "jpeg") }
+                    Log.d(TAG, "Fichiers JPG trouvés: ${jpgFiles.size}")
+                    jpgFiles.forEach { file ->
+                        Log.d(TAG, "  - JPG: ${file.name} (${file.absolutePath})")
+                    }
+                    
+                    val filteredImages = imageFiles
+                        .filter { it.isFile && it.extension.lowercase() in supportedExtensions }
+                        .map { it.absolutePath }
+                    
+                    images.addAll(filteredImages)
+                    Log.d(TAG, "${filteredImages.size} images trouvées")
+                    
+                    // Afficher les extensions trouvées pour le débogage
+                    val extensions = imageFiles.filter { it.isFile }.map { it.extension.lowercase() }.distinct()
+                    Log.d(TAG, "Extensions trouvées: $extensions")
+                    
+                    if (filteredImages.isEmpty()) {
+                        Toast.makeText(this, "Aucune image trouvée pour $communeName", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Log.w(TAG, "Aucune image trouvée pour $communeName")
+                    Toast.makeText(this, "Aucune image trouvée pour $communeName", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Log.w(TAG, "Le dossier pour $communeName n'existe pas: ${baseFolder.absolutePath}")
+                Toast.makeText(this, "Aucun dossier trouvé pour $communeName", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erreur lors du chargement des images", e)
+            Toast.makeText(this, "Erreur lors du chargement des images: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 }
