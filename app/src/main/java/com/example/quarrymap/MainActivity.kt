@@ -1,14 +1,19 @@
 package com.example.quarrymap
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.util.Log
-
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -26,15 +31,13 @@ import java.net.URL
 
 class MainActivity : AppCompatActivity() {
     
-    // Helper pour les notifications avec barre de progression
+
     private lateinit var notificationHelper: NotificationHelper
 
     private lateinit var binding: ActivityMainBinding
     
-    // Chemin de téléchargement personnalisé
     private var customDownloadPath: String? = null
     
-    // Liste complète des communes
     private var allCommunes: List<String> = emptyList()
 
     private val folderPickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
@@ -53,6 +56,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val networkReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            checkNetworkStatus()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -67,6 +76,33 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         setupListeners()
         loadCommunesList()
+        checkNetworkStatus()
+
+        // Enregistrer le BroadcastReceiver pour les changements de connectivité
+        registerReceiver(networkReceiver, IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Désenregistrer le BroadcastReceiver
+        unregisterReceiver(networkReceiver)
+    }
+
+    private fun checkNetworkStatus() {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
+        val isConnected = networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+
+        if (!isConnected) {
+            binding.topAppBar.findViewById<TextView>(R.id.toolbarTitle).visibility = View.GONE
+            binding.offlineBanner.visibility = View.VISIBLE
+            binding.fab.visibility = View.GONE
+        } else {
+            binding.topAppBar.findViewById<TextView>(R.id.toolbarTitle).visibility = View.VISIBLE
+            binding.offlineBanner.visibility = View.GONE
+            binding.fab.visibility = View.VISIBLE
+        }
     }
 
     private fun setupRecyclerView() {
@@ -136,7 +172,6 @@ class MainActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 withContext(Dispatchers.Main) {
-                    // Afficher une notification de début de traitement
                     notificationHelper.showProgressNotification(
                         "Traitement du dossier",
                         "Analyse des fichiers...",
@@ -146,18 +181,15 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
                 
-                // Obtenir le chemin de base pour les plans triés
                 val basePath = getDownloadPath()
                 val baseDir = File(basePath)
                 if (!baseDir.exists()) {
                     baseDir.mkdirs()
                 }
                 
-                // Accéder aux documents du dossier sélectionné
                 val docUri = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
                 val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
                 
-                // Première passe : compter le nombre total d'images
                 var totalImages = 0
                 contentResolver.query(
                     childrenUri,
@@ -174,7 +206,6 @@ class MainActivity : AppCompatActivity() {
                 
                 Log.d("MainActivity", "Nombre total d'images trouvées: $totalImages")
                 
-                // Mettre à jour la notification avec le nombre total d'images
                 withContext(Dispatchers.Main) {
                     notificationHelper.showProgressNotification(
                         "Traitement des images",
@@ -185,7 +216,6 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
                 
-                // Deuxième passe : traiter les images
                 var processedImages = 0
                 var successfulCopies = 0
                 
@@ -214,16 +244,13 @@ class MainActivity : AppCompatActivity() {
                         // Traiter uniquement les images
                         if (mime.startsWith("image/")) {
                             try {
-                                // Extraire le nom de la commune du nom du fichier
                                 val communeName = name.split("_").firstOrNull() ?: "Inconnu"
                                 
-                                // Créer le dossier de la commune s'il n'existe pas
                                 val communeDir = File(baseDir, communeName)
                                 if (!communeDir.exists()) {
                                     communeDir.mkdirs()
                                 }
                                 
-                                // Copier le fichier
                                 val fileUri = DocumentsContract.buildDocumentUriUsingTree(uri, id)
                                 val inputStream = contentResolver.openInputStream(fileUri)
                                 val destFile = File(communeDir, name)
@@ -246,7 +273,6 @@ class MainActivity : AppCompatActivity() {
                             
                             processedImages++
                             
-                            // Mettre à jour la notification toutes les 5 images ou à la fin
                             if (processedImages % 5 == 0 || processedImages == totalImages) {
                                 withContext(Dispatchers.Main) {
                                     notificationHelper.showProgressNotification(
@@ -313,12 +339,10 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this@MainActivity, "Téléchargement démarré", Toast.LENGTH_SHORT).show()
                 }
                 
-                // Lire le contenu JSON
                 val inputStream = contentResolver.openInputStream(uri)
                 val reader = BufferedReader(InputStreamReader(inputStream))
                 val jsonContent = reader.use { it.readText() }
                 
-                // Analyser le JSON
                 val jsonArray = JSONArray(jsonContent)
                 val totalFiles = jsonArray.length()
                 Log.d("MainActivity", "Nombre total d'images à télécharger: $totalFiles")
@@ -327,7 +351,6 @@ class MainActivity : AppCompatActivity() {
                     binding.progressBar.max = totalFiles
                     binding.progressText.text = "Préparation des téléchargements ($totalFiles fichiers)..."
                     
-                    // Mettre à jour la notification avec le nombre total de fichiers
                     notificationHelper.showProgressNotification(
                         "Téléchargement en cours",
                         "Préparation de $totalFiles fichiers...",
@@ -337,7 +360,6 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
 
-                // Obtenir le chemin de base pour les plans triés
                 val basePath = getDownloadPath()
                 Log.d("MainActivity", "Chemin de téléchargement: $basePath")
 
@@ -421,13 +443,10 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 withContext(Dispatchers.Main) {
-                    // Masquer le conteneur de progression
                     binding.progressContainer.visibility = View.GONE
                     
-                    // Restaurer l'opacité du RecyclerView
                     binding.recyclerView.alpha = 1.0f
                     
-                    // Afficher la notification de fin de téléchargement
                     val message = "Téléchargement terminé: $successfulDownloads réussis, $failedDownloads échecs"
                     notificationHelper.showCompletedNotification(
                         "Téléchargement terminé",
@@ -441,13 +460,10 @@ class MainActivity : AppCompatActivity() {
                 Log.e("MainActivity", "Erreur lors du traitement du JSON", e)
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    // Masquer le conteneur de progression
                     binding.progressContainer.visibility = View.GONE
                     
-                    // Restaurer l'opacité du RecyclerView
                     binding.recyclerView.alpha = 1.0f
                     
-                    // Afficher une notification d'erreur
                     notificationHelper.showCompletedNotification(
                         "Erreur de téléchargement",
                         "Une erreur s'est produite: ${e.message}"
@@ -471,7 +487,6 @@ class MainActivity : AppCompatActivity() {
             
             connection.connect()
             
-            // Vérifier le code de réponse si c'est une connexion HTTP
             if (connection is HttpURLConnection) {
                 val responseCode = connection.responseCode
                 if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -480,10 +495,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             
-            // S'assurer que le dossier parent existe
             destination.parentFile?.mkdirs()
             
-            // Copier les données avec un buffer de taille raisonnable
             val buffer = ByteArray(8192) // 8KB buffer
             var bytesRead: Int
             var totalBytesRead = 0L
@@ -498,7 +511,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             
-            // Vérifier que le fichier a bien été créé et n'est pas vide
             val success = destination.exists() && destination.length() > 0
             if (success) {
                 Log.d("MainActivity", "Image téléchargée avec succès: $url -> ${destination.absolutePath} (${destination.length()} octets)")
@@ -514,13 +526,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    // Méthode pour définir le chemin de téléchargement personnalisé
     fun setCustomDownloadPath(path: String) {
         if (path.isNotEmpty()) {
             customDownloadPath = path
             Log.d("MainActivity", "Chemin de téléchargement défini: $path")
             
-            // Créer le dossier s'il n'existe pas
             val directory = File(path)
             if (!directory.exists()) {
                 val success = directory.mkdirs()
@@ -531,26 +541,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    // Méthode pour obtenir le chemin de téléchargement actuel
     private fun getDownloadPath(): String {
         return customDownloadPath ?: "${getExternalFilesDir(null)?.absolutePath}/plans_triés"
     }
     
-    // Méthode appelée depuis UploadOptionsDialog pour ouvrir le sélecteur de dossier
     fun openFolderPicker() {
         folderPickerLauncher.launch(null)
     }
     
-    // Méthode appelée depuis UploadOptionsDialog pour ouvrir le sélecteur de fichier JSON
     fun openJsonPicker() {
         jsonPickerLauncher.launch("application/json")
     }
     
 
     
-    // Chargement de la liste des communes
     private fun loadCommunesList() {
-        // Récupérer la liste des dossiers de communes depuis le stockage
         val basePath = getDownloadPath()
         val communesDir = File(basePath)
         
@@ -560,7 +565,6 @@ class MainActivity : AppCompatActivity() {
                 ?.map { it.name }
                 ?.sorted() ?: emptyList()
             
-            // Mise à jour de l'adaptateur avec la liste des communes
             (binding.recyclerView.adapter as? CommuneAdapter)?.updateData(allCommunes)
             
             if (allCommunes.isEmpty()) {

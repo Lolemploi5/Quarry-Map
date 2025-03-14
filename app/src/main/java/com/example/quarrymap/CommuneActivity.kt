@@ -50,12 +50,9 @@ class CommuneActivity : AppCompatActivity() {
     
     private fun loadImagesForCommune(communeName: String, customBasePath: String? = null) {
         try {
-            // Déterminer le dossier de base à utiliser
             val baseFolder = if (customBasePath != null) {
-                // Utiliser le chemin personnalisé fourni par MainActivity
                 File(customBasePath, communeName)
             } else {
-                // Utiliser le chemin par défaut dans le stockage externe
                 File(getExternalFilesDir(null), "plans_triés/$communeName")
             }
                 
@@ -71,13 +68,11 @@ class CommuneActivity : AppCompatActivity() {
                         Log.d(TAG, "- ${file.name} (${file.extension}, ${file.length()} bytes, isFile=${file.isFile})")
                     }
                     
-                    // Inclure tous les formats d'image courants
                     val supportedExtensions = listOf(
                         "jpg", "jpeg", "png", "gif", "bmp", "webp",  // Formats bitmap
                         "svg", "xml", "vector"                          // Formats vectoriels
                     )
                     
-                    // Vérifier explicitement les fichiers JPG pour le débogage
                     val jpgFiles = imageFiles.filter { it.isFile && (it.extension.lowercase() == "jpg" || it.extension.lowercase() == "jpeg") }
                     Log.d(TAG, "Fichiers JPG trouvés: ${jpgFiles.size}")
                     jpgFiles.forEach { file ->
@@ -91,7 +86,6 @@ class CommuneActivity : AppCompatActivity() {
                     images.addAll(filteredImages)
                     Log.d(TAG, "${filteredImages.size} images trouvées")
                     
-                    // Afficher les extensions trouvées pour le débogage
                     val extensions = imageFiles.filter { it.isFile }.map { it.extension.lowercase() }.distinct()
                     Log.d(TAG, "Extensions trouvées: $extensions")
                     

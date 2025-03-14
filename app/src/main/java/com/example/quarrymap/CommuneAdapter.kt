@@ -35,7 +35,6 @@ class CommuneAdapter(
         private val communeName: TextView = itemView.findViewById(R.id.communeName)
 
         fun bind(commune: String) {
-            // Ajout de l'emoji 📌 devant le nom de chaque commune
             communeName.text = "$commune"
             itemView.setOnClickListener { onClick(commune) }
         }

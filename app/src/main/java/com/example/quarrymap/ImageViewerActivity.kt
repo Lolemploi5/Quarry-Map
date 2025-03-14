@@ -35,13 +35,11 @@ class ImageViewerActivity : AppCompatActivity() {
             val file = File(imagePath)
             Log.d(TAG, "Tentative de chargement de l'image: $imagePath")
             
-            // Vérifier si le fichier existe
             if (!file.exists()) {
                 Log.e(TAG, "ERREUR: Le fichier n'existe pas: $imagePath")
                 return
             }
             
-            // Vérifier la taille du fichier
             val fileSize = file.length()
             Log.d(TAG, "Fichier: ${file.name}, Taille: $fileSize bytes, Chemin: $imagePath")
             
@@ -67,7 +65,6 @@ class ImageViewerActivity : AppCompatActivity() {
                     vectorImageView.visibility = View.VISIBLE
                     
                     if (isSvg) {
-                        // Utiliser notre module SVG pour les fichiers SVG
                         try {
                             Log.d(TAG, "Chargement d'une image SVG avec GlideApp: ${file.name}")
                             GlideApp.with(this)
@@ -77,7 +74,6 @@ class ImageViewerActivity : AppCompatActivity() {
                                 .transition(DrawableTransitionOptions.withCrossFade())
                                 .into(vectorImageView)
                         } catch (e: Exception) {
-                            // Fallback en cas d'erreur avec le module SVG
                             Log.w(TAG, "Erreur avec le module SVG, essai avec le chargement standard", e)
                             Glide.with(this)
                                 .load(Uri.fromFile(file))
@@ -85,7 +81,6 @@ class ImageViewerActivity : AppCompatActivity() {
                                 .into(vectorImageView)
                         }
                     } else {
-                        // Pour les fichiers XML vectoriels
                         Log.d(TAG, "Chargement d'une image vectorielle XML: ${file.name}")
                         Glide.with(this)
                             .load(Uri.fromFile(file))
@@ -94,13 +89,11 @@ class ImageViewerActivity : AppCompatActivity() {
                             .into(vectorImageView)
                     }
                 } else if (isJpg) {
-                    // Traitement spécifique pour les fichiers JPG
                     Log.d(TAG, "Chargement d'une image JPG: ${file.name}")
                     imageView.visibility = View.VISIBLE
                     vectorImageView.visibility = View.GONE
                     
                     try {
-                        // Essayer d'abord avec Uri.fromFile
                         Log.d(TAG, "Tentative de chargement JPG avec Uri.fromFile: ${file.name}")
                         imageView.setImage(ImageSource.uri(Uri.fromFile(file).toString()))
                         imageView.setMinimumScaleType(SubsamplingScaleImageView.SCALE_TYPE_CENTER_INSIDE)
@@ -108,19 +101,16 @@ class ImageViewerActivity : AppCompatActivity() {
                         imageView.setDoubleTapZoomScale(5f)
                     } catch (e: Exception) {
                         Log.w(TAG, "Erreur avec Uri.fromFile pour JPG, essai avec le chemin direct", e)
-                        // Essayer avec le chemin direct en cas d'échec
                         imageView.setImage(ImageSource.uri(imagePath))
                         imageView.setMinimumScaleType(SubsamplingScaleImageView.SCALE_TYPE_CENTER_INSIDE)
                         imageView.setMaxScale(20f)
                         imageView.setDoubleTapZoomScale(5f)
                     }
                 } else {
-                    // Pour les autres images bitmap, utiliser SubsamplingScaleImageView
                     Log.d(TAG, "Chargement d'une image bitmap standard: ${file.name}")
                     imageView.visibility = View.VISIBLE
                     vectorImageView.visibility = View.GONE
                     
-                    // Charge l'image en utilisant SubsamplingScaleImageView
                     imageView.setImage(ImageSource.uri(imagePath))
                     imageView.setMinimumScaleType(SubsamplingScaleImageView.SCALE_TYPE_CENTER_INSIDE)
                     imageView.setMaxScale(20f) // Permet un zoom jusqu'à 20x
