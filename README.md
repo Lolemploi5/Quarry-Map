@@ -73,9 +73,9 @@ Les contributions sont les bienvenues 🙌
 Fork, crée une branche, propose des changements et ouvre une **pull request** !
 
 ```bash
-git checkout -b feature/ma-nouvelle-feature
+git checkout -b feat/ma-nouvelle-feature
 git commit -m "Ajout de ..."
-git push origin feature/ma-nouvelle-feature
+git push origin feat/ma-nouvelle-feature
 ```
 
 ---
