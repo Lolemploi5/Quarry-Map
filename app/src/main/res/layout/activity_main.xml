@@ -38,6 +38,7 @@
                     android:layout_marginEnd="12dp" />
 
                 <TextView
+                    android:id="@+id/toolbarTitle"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -46,35 +47,48 @@
                     android:textSize="20sp"
                     android:fontFamily="@font/roboto_medium" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/fab"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginEnd="12dp"
-                android:text="Importer"
-                android:textAllCaps="false"
-                android:fontFamily="@font/roboto_medium"
-                android:textSize="14sp"
-                android:paddingStart="12dp"
-                android:paddingEnd="16dp"
-                android:minHeight="0dp"
-                android:minWidth="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                app:icon="@android:drawable/ic_input_add"
-                app:iconTint="@android:color/white"
-                app:iconSize="18dp"
-                app:iconPadding="8dp"
-                app:cornerRadius="18dp"
-                app:elevation="0dp"
-                app:rippleColor="#33FFFFFF"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/fab"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="12dp"
+                    android:text="Importer"
+                    android:textAllCaps="false"
+                    android:fontFamily="@font/roboto_medium"
+                    android:textSize="14sp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="16dp"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:icon="@android:drawable/ic_input_add"
+                    app:iconTint="@android:color/white"
+                    app:iconSize="18dp"
+                    app:iconPadding="8dp"
+                    app:cornerRadius="18dp"
+                    app:elevation="0dp"
+                    app:rippleColor="#33FFFFFF"
+                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton" />
 
             </LinearLayout>
 
         </com.google.android.material.appbar.MaterialToolbar>
     </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Bandeau gris pour le mode hors ligne -->
+    <TextView
+        android:id="@+id/offlineBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/darker_gray"
+        android:text="@string/offline_mode"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:padding="8dp"
+        android:gravity="center"
+        android:visibility="gone" />
 
     <!-- Corps principal de la page -->
     <androidx.constraintlayout.widget.ConstraintLayout

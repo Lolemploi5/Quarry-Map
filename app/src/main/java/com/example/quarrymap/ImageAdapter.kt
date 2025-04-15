@@ -31,7 +31,7 @@ class ImageAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_planche, parent, false) // 🔴 Assure-toi que ce fichier existe
+            .inflate(R.layout.item_planche, parent, false)
         return ImageViewHolder(view)
     }
 
@@ -52,14 +52,12 @@ class ImageAdapter(
         val file = File(imagePath)
         holder.plancheName.text = file.name
 
-        // Vérifier si le fichier existe
         if (!file.exists()) {
             Log.e("ImageAdapter", "ERREUR: Le fichier n'existe pas: $imagePath")
             holder.planchePreview.setImageResource(R.drawable.ic_broken_image)
             return
         }
 
-        // Vérifier la taille du fichier
         val fileSize = file.length()
         Log.d("ImageAdapter", "Fichier: ${file.name}, Taille: $fileSize bytes, Chemin: $imagePath")
         
@@ -70,7 +68,6 @@ class ImageAdapter(
         }
 
         try {
-            // Déterminer le type de fichier image
             val extension = file.extension.lowercase()
             Log.d("ImageAdapter", "Extension du fichier: $extension")
             
@@ -79,10 +76,8 @@ class ImageAdapter(
             val isJpg = extension in listOf("jpg", "jpeg")
             
             if (isJpg) {
-                // Traitement spécifique pour les fichiers JPG
                 Log.d("ImageAdapter", "Chargement d'une image JPG: ${file.name}")
                 
-                // Utiliser Uri.fromFile pour les JPG au lieu du chemin direct
                 Glide.with(holder.itemView.context)
                     .asBitmap()
                     .load(Uri.fromFile(file))
@@ -92,13 +87,11 @@ class ImageAdapter(
                     .into(holder.planchePreview)
             } else if (isSvg) {
                 try {
-                    // Chargement spécial pour les fichiers SVG en utilisant notre module SVG
                     Log.d("ImageAdapter", "Chargement d'une image SVG: ${file.name}")
                     getSvgRequestBuilder(holder.itemView)
                         .load(Uri.fromFile(file))
                         .into(holder.planchePreview)
                 } catch (e: Exception) {
-                    // En cas d'erreur avec le module SVG, essayer avec le chargement standard
                     Log.w("ImageAdapter", "Erreur avec le module SVG, essai avec le chargement standard", e)
                     Glide.with(holder.itemView.context)
                         .load(Uri.fromFile(file))
@@ -106,7 +99,6 @@ class ImageAdapter(
                         .into(holder.planchePreview)
                 }
             } else if (isVector) {
-                // Chargement des fichiers vectoriels XML
                 Log.d("ImageAdapter", "Chargement d'une image vectorielle XML: ${file.name}")
                 Glide.with(holder.itemView.context)
                     .load(Uri.fromFile(file))
@@ -115,7 +107,6 @@ class ImageAdapter(
                     .centerInside()
                     .into(holder.planchePreview)
             } else {
-                // Chargement normal pour les autres images bitmap
                 Log.d("ImageAdapter", "Chargement d'une image bitmap standard: ${file.name}")
                 Glide.with(holder.itemView.context)
                     .asBitmap() 
