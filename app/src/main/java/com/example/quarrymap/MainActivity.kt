@@ -90,9 +90,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkNetworkStatus() {
         val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connectivityManager.activeNetwork
-        val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
-        val isConnected = networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+
+        val isConnected = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val network = connectivityManager.activeNetwork
+            val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
+            networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        } else {
+            val networkInfo = connectivityManager.activeNetworkInfo
+            networkInfo?.isConnected == true
+        }
 
         if (!isConnected) {
             binding.topAppBar.findViewById<TextView>(R.id.toolbarTitle).visibility = View.GONE
@@ -104,6 +110,7 @@ class MainActivity : AppCompatActivity() {
             binding.fab.visibility = View.VISIBLE
         }
     }
+
 
     private fun setupRecyclerView() {
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
