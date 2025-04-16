@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -176,33 +177,51 @@ class ImageAdapter(
 
     // Afficher la boîte de dialogue de renommage
     private fun showRenameDialog(context: Context, file: File, position: Int) {
-        val input = EditText(context).apply {
-            inputType = InputType.TYPE_CLASS_TEXT
-            setText(file.nameWithoutExtension)
-            selectAll()
-            setPadding(50, 30, 50, 30)
+        // Créer une vue personnalisée à partir du layout
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_rename, null)
+        
+        // Configurer le champ d'édition
+        val editText = dialogView.findViewById<EditText>(R.id.edit_text_name)
+        editText.setText(file.nameWithoutExtension)
+        editText.selectAll()
+        
+        // Créer l'AlertDialog avec le style personnalisé
+        val dialog = AlertDialog.Builder(context, R.style.DarkAlertDialog)
+            .setView(dialogView)
+            .create()
+        
+        // Configurer les coins arrondis
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        
+        // Configurer les boutons
+        val buttonCancel = dialogView.findViewById<Button>(R.id.button_cancel)
+        val buttonRename = dialogView.findViewById<Button>(R.id.button_rename)
+        
+        buttonCancel.setOnClickListener {
+            dialog.dismiss()
         }
         
-        AlertDialog.Builder(context)
-            .setTitle("Renommer la planche")
-            .setView(input)
-            .setPositiveButton("Renommer") { _, _ ->
-                val newName = input.text.toString().trim()
-                if (newName.isNotEmpty()) {
-                    renameFile(context, file, newName, position)
-                }
+        buttonRename.setOnClickListener {
+            val newName = editText.text.toString().trim()
+            if (newName.isNotEmpty()) {
+                dialog.dismiss()
+                renameFile(context, file, newName, position)
+            } else {
+                Toast.makeText(context, "Le nom ne peut pas être vide", Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Annuler", null)
-            .show()
-            
-        // Afficher automatiquement le clavier
-        input.post {
-            input.requestFocus()
-            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
         }
+        
+        // Afficher automatiquement le clavier
+        editText.post {
+            editText.requestFocus()
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
+        }
+        
+        // Afficher le dialogue
+        dialog.show()
     }
-    
+
     // Renommer le fichier et mettre à jour l'interface
     private fun renameFile(context: Context, file: File, newName: String, position: Int) {
         try {
