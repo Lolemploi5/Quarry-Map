@@ -1,17 +1,15 @@
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!-- Barre d'outils en haut -->
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        app:elevation="0dp">
+        android:layout_alignParentTop="true">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/topAppBar"
@@ -77,121 +75,131 @@
         </com.google.android.material.appbar.MaterialToolbar>
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Bandeau gris pour le mode hors ligne -->
     <TextView
         android:id="@+id/offlineBanner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/darker_gray"
-        android:text="@string/offline_mode"
-        android:textColor="@android:color/white"
-        android:textSize="16sp"
+        android:layout_below="@id/appBarLayout"
+        android:background="#FFA000"
         android:padding="8dp"
-        android:gravity="center"
+        android:text="Mode hors-ligne actif"
+        android:textAlignment="center"
+        android:textColor="#FFFFFF"
         android:visibility="gone" />
 
-    <!-- Corps principal de la page -->
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- Container pour les fragments -->
+    <FrameLayout
+        android:id="@+id/container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="?attr/actionBarSize">
+        android:layout_above="@id/bottomNavBar"
+        android:layout_below="@id/offlineBanner" />
 
-        <!-- Barre de recherche -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/searchCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
+    <!-- Bottom navigation bar -->
+    <LinearLayout
+        android:id="@+id/bottomNavBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_alignParentBottom="true"
+        android:background="#1E1E1E"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/tab_communes"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:onClick="onSearchCardClick"
-            android:stateListAnimator="@null"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="@android:color/white"
-            app:rippleColor="#1F000000"
-            app:strokeWidth="1dp"
-            app:strokeColor="#EEEEEE"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-            
-            <androidx.appcompat.widget.SearchView
-                android:id="@+id/searchView"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:background="@null"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:queryHint="Rechercher une commune..."
-                android:clickable="false"
-                android:focusable="false"
-                android:focusableInTouchMode="false"
-                style="@style/SearchViewStyle"
-                app:queryBackground="@null"
-                app:defaultQueryHint="Rechercher une commune..."
-                app:searchHintIcon="@null"
-                app:searchIcon="@android:drawable/ic_menu_search"
-                app:iconifiedByDefault="false"
-                app:submitBackground="@null" />
-                
-        </com.google.android.material.card.MaterialCardView>
+            android:gravity="center"
+            android:orientation="vertical">
 
-        <!-- Liste des communes -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerView"
+            <ImageView
+                android:id="@+id/icon_communes"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_communes"
+                android:tint="#FFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Communes"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tab_favorites"
             android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginTop="16dp"
-            app:layout_constraintTop_toBottomOf="@id/searchCard"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
 
-        <!-- Conteneur pour la progression -->  
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/progressContainer"
+            <ImageView
+                android:id="@+id/icon_favorites"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_favorites"
+                android:tint="#80FFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Favoris"
+                android:textColor="#80FFFFFF"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Bouton d'ajout -->
+    <ImageButton
+        android:id="@+id/addButton"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_above="@id/bottomNavBar"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/circle_button_background"
+        android:contentDescription="Ajouter des planches"
+        android:src="@drawable/ic_add" />
+
+    <!-- Conteneur de progression -->
+    <RelativeLayout
+        android:id="@+id/progressContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottomNavBar"
+        android:layout_below="@id/offlineBanner"
+        android:background="#80000000"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
-            android:visibility="gone"
-            style="@style/CardStyle"
-            app:layout_constraintTop_toBottomOf="@id/searchCard"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            android:layout_centerInParent="true"
+            android:layout_marginLeft="32dp"
+            android:layout_marginRight="32dp" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
+        <TextView
+            android:id="@+id/progressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/progressBar"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="8dp"
+            android:text="Téléchargement en cours..."
+            android:textColor="#FFFFFF" />
+    </RelativeLayout>
 
-                <TextView
-                    android:id="@+id/progressText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="Téléchargement en cours..."
-                    android:textSize="16sp"
-                    android:fontFamily="@font/roboto_medium"
-                    android:textColor="#212121" />
-
-                <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/progressBar"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    app:trackCornerRadius="4dp"
-                    app:trackThickness="8dp"
-                    app:indicatorColor="?attr/colorPrimary"
-                    app:trackColor="#1F000000" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-    
-
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</RelativeLayout>

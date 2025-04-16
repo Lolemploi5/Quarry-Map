@@ -12,12 +12,13 @@ import android.os.Bundle
 import android.provider.DocumentsContract
 import android.util.Log
 import android.view.View
-import android.view.inputmethod.InputMethodManager
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.fragment.app.Fragment
 import com.example.quarrymap.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +64,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private lateinit var tabCommunes: LinearLayout
+    private lateinit var tabFavorites: LinearLayout
+    private lateinit var iconCommunes: ImageView
+    private lateinit var iconFavorites: ImageView
+    private lateinit var communesFragment: CommunesFragment
+    private lateinit var favoritesFragment: FavoritesFragment
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -74,19 +82,37 @@ class MainActivity : AppCompatActivity() {
         // Configuration de la toolbar
         setSupportActionBar(binding.topAppBar)
 
-        setupRecyclerView()
-        setupListeners()
-        loadCommunesList()
+        // Initialiser les vues de la navbar
+        tabCommunes = findViewById(R.id.tab_communes)
+        tabFavorites = findViewById(R.id.tab_favorites)
+        iconCommunes = findViewById(R.id.icon_communes)
+        iconFavorites = findViewById(R.id.icon_favorites)
+        
+        // Initialiser les fragments
+        communesFragment = CommunesFragment()
+        favoritesFragment = FavoritesFragment()
+        
+        // Configurer les écouteurs d'événements pour la navbar
+        setupBottomNavBar()
+        
+        // Charger le fragment des communes par défaut
+        if (savedInstanceState == null) {
+            loadFragment(communesFragment)
+            updateNavBarState(true, false)
+        }
+
+        // Mettre à jour le référencement du bouton d'ajout
+        binding.addButton.setOnClickListener {
+            showUploadOptions()
+        }
+        
         checkNetworkStatus()
 
         // Enregistrer le BroadcastReceiver pour les changements de connectivité
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            // Utilisation de l'approche dépréciée pour les anciennes versions d'Android
             @Suppress("DEPRECATION")
             registerReceiver(networkReceiver, IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
         } else {
-            // Pour les versions plus récentes, on peut s'abonner aux mises à jour du gestionnaire de connectivité
-            // Note: cette méthode sera appelée dans onResume() et désenregistrée dans onPause()
             checkNetworkStatus() // Vérifier l'état initial
         }
     }
@@ -125,72 +151,14 @@ class MainActivity : AppCompatActivity() {
         if (!isConnected) {
             binding.topAppBar.findViewById<TextView>(R.id.toolbarTitle).visibility = View.GONE
             binding.offlineBanner.visibility = View.VISIBLE
-            binding.fab.visibility = View.GONE
+            binding.addButton.visibility = View.GONE
         } else {
             binding.topAppBar.findViewById<TextView>(R.id.toolbarTitle).visibility = View.VISIBLE
             binding.offlineBanner.visibility = View.GONE
-            binding.fab.visibility = View.VISIBLE
+            binding.addButton.visibility = View.VISIBLE
         }
     }
 
-
-    private fun setupRecyclerView() {
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        binding.recyclerView.adapter = CommuneAdapter(emptyList()) { commune ->
-            // Lancement de l'activité CommuneActivity avec le nom de la commune
-            val intent = Intent(this, CommuneActivity::class.java).apply {
-                putExtra(CommuneActivity.EXTRA_COMMUNE, commune)
-                putExtra("EXTRA_BASE_PATH", getDownloadPath())
-            }
-            startActivity(intent)
-        }
-    }
-
-    private fun setupListeners() {
-        binding.fab.setOnClickListener {
-            showUploadOptions()
-        }
-        
-        // Configurer la recherche
-        binding.searchView.setOnQueryTextListener(object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                filterCommunes(query)
-                return true
-            }
-
-            override fun onQueryTextChange(newText: String?): Boolean {
-                filterCommunes(newText)
-                return true
-            }
-        })
-    }
-    
-    private fun filterCommunes(query: String?) {
-        (binding.recyclerView.adapter as? CommuneAdapter)?.filter(query ?: "")
-    }
-    
-    fun onSearchCardClick(view: View) {
-        // Animation de l'élévation de la carte
-        view.animate()
-            .translationZ(8f)
-            .setDuration(150)
-            .withEndAction {
-                binding.searchView.requestFocus()
-                binding.searchView.isIconified = false
-                
-                // Afficher le clavier virtuel
-                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-                imm.showSoftInput(binding.searchView.findFocus(), InputMethodManager.SHOW_IMPLICIT)
-                
-                view.animate()
-                    .translationZ(0f)
-                    .setStartDelay(200)
-                    .setDuration(100)
-                    .start()
-            }
-            .start()
-    }
-    
     private fun showUploadOptions() {
         val dialog = UploadOptionsDialog()
         dialog.show(supportFragmentManager, "UploadOptionsDialog")
@@ -324,7 +292,9 @@ class MainActivity : AppCompatActivity() {
                     )
                     
                     Toast.makeText(this@MainActivity, "Importation terminée: $successfulCopies/$totalImages images importées", Toast.LENGTH_SHORT).show()
-                    loadCommunesList() // Recharger la liste des communes
+                    
+                    // Recharger les communes à travers le fragment actif
+                    loadCommunesList()
                 }
                 
             } catch (e: Exception) {
@@ -352,16 +322,13 @@ class MainActivity : AppCompatActivity() {
                     binding.progressBar.progress = 0
                     binding.progressText.text = "Lecture du fichier JSON..."
                     
-                    // Désactiver le RecyclerView pendant le téléchargement
-                    binding.recyclerView.alpha = 0.5f
-                    
                     // Afficher la notification de téléchargement
                     notificationHelper.showProgressNotification(
                         "Téléchargement démarré",
                         "Préparation des fichiers...",
                         0,
                         100,
-                        true // Indéterminé au début
+                        true
                     )
                     
                     Toast.makeText(this@MainActivity, "Téléchargement démarré", Toast.LENGTH_SHORT).show()
@@ -473,8 +440,6 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     binding.progressContainer.visibility = View.GONE
                     
-                    binding.recyclerView.alpha = 1.0f
-                    
                     val message = "Téléchargement terminé: $successfulDownloads réussis, $failedDownloads échecs"
                     notificationHelper.showCompletedNotification(
                         "Téléchargement terminé",
@@ -482,15 +447,15 @@ class MainActivity : AppCompatActivity() {
                     )
                     
                     Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
-                    loadCommunesList() // Recharger la liste des communes
+                    
+                    // Recharger les communes à travers le fragment actif
+                    loadCommunesList()
                 }
             } catch (e: Exception) {
                 Log.e("MainActivity", "Erreur lors du traitement du JSON", e)
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     binding.progressContainer.visibility = View.GONE
-                    
-                    binding.recyclerView.alpha = 1.0f
                     
                     notificationHelper.showCompletedNotification(
                         "Erreur de téléchargement",
@@ -569,7 +534,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun getDownloadPath(): String {
+    fun getDownloadPath(): String {
         return customDownloadPath ?: "${getExternalFilesDir(null)?.absolutePath}/plans_triés"
     }
     
@@ -581,28 +546,42 @@ class MainActivity : AppCompatActivity() {
         jsonPickerLauncher.launch("application/json")
     }
     
-
+    private fun setupBottomNavBar() {
+        tabCommunes.setOnClickListener {
+            loadFragment(communesFragment)
+            updateNavBarState(true, false)
+        }
+        
+        tabFavorites.setOnClickListener {
+            loadFragment(favoritesFragment)
+            updateNavBarState(false, true)
+        }
+    }
+    
+    private fun updateNavBarState(communesSelected: Boolean, favoritesSelected: Boolean) {
+        // Mettre à jour les icônes
+        iconCommunes.setImageAlpha(if (communesSelected) 255 else 128)
+        iconFavorites.setImageAlpha(if (favoritesSelected) 255 else 128)
+        
+        // Mettre à jour les textes
+        (tabCommunes.getChildAt(1) as TextView).setTextColor(
+            if (communesSelected) 0xFFFFFFFF.toInt() else 0x80FFFFFF.toInt()
+        )
+        (tabFavorites.getChildAt(1) as TextView).setTextColor(
+            if (favoritesSelected) 0xFFFFFFFF.toInt() else 0x80FFFFFF.toInt()
+        )
+    }
+    
+    private fun loadFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.container, fragment)
+            .commit()
+    }
     
     private fun loadCommunesList() {
-        val basePath = getDownloadPath()
-        val communesDir = File(basePath)
-        
-        if (communesDir.exists() && communesDir.isDirectory) {
-            allCommunes = communesDir.listFiles()
-                ?.filter { it.isDirectory }
-                ?.map { it.name }
-                ?.sorted() ?: emptyList()
-            
-            (binding.recyclerView.adapter as? CommuneAdapter)?.updateData(allCommunes)
-            
-            if (allCommunes.isEmpty()) {
-                Toast.makeText(this, "Aucune commune trouvée. Importez des données d'abord.", Toast.LENGTH_LONG).show()
-            } else {
-                Log.d("MainActivity", "${allCommunes.size} communes trouvées")
-            }
-        } else {
-            communesDir.mkdirs()
-            Toast.makeText(this, "Aucune commune trouvée. Importez des données d'abord.", Toast.LENGTH_LONG).show()
+        if (::communesFragment.isInitialized && 
+            supportFragmentManager.findFragmentById(R.id.container) is CommunesFragment) {
+            communesFragment.refreshCommunes()
         }
     }
 }
