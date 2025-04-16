@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/searchCardFavorites"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:clickable="true"
+        android:elevation="2dp"
+        android:focusable="true"
+        app:cardCornerRadius="8dp">
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searchViewFavorites"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:iconifiedByDefault="false"
+            android:clickable="true"
+            android:focusable="true"
+            android:queryHint="Rechercher une planche..." />
+    </androidx.cardview.widget.CardView>
+
+    <TextView
+        android:id="@+id/titleFavorites"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/searchCardFavorites"
+        android:padding="16dp"
+        android:text="Vos planches favorites"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/favoritesRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/titleFavorites"
+        android:clipToPadding="false"
+        android:padding="8dp" />
+
+    <TextView
+        android:id="@+id/emptyFavoritesText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:padding="16dp"
+        android:text="Vous n'avez pas encore de planches favorites.\nMarquez des planches comme favorites pour les retrouver ici."
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+</RelativeLayout>

@@ -13,6 +13,11 @@
         <!-- Style du texte -->
         <item name="android:textSize">16sp</item>
         <item name="android:fontFamily">@font/roboto_regular</item>
+        
+        <!-- Rendre la SearchView plus accessible -->
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:focusableInTouchMode">true</item>
     </style>
     
     <style name="CardStyle">
@@ -116,6 +121,37 @@
         <item name="android:minWidth">0dp</item>
         <item name="android:paddingStart">16dp</item>
         <item name="android:paddingEnd">16dp</item>
+    </style>
+
+    <style name="TopBarStyle" parent="Widget.AppCompat.Toolbar">
+        <item name="android:background">#1E1E1E</item>
+        <item name="android:elevation">4dp</item>
+        <item name="titleTextColor">#FFFFFF</item>
+        <item name="subtitleTextColor">#CCCCCC</item>
+        <item name="titleTextAppearance">@style/TopBarTextAppearance</item>
+        <item name="popupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+    </style>
+
+    <style name="TopBarTextAppearance" parent="TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:fontFamily">@font/roboto_medium</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="ToolbarTitleStyle">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:fontFamily">@font/roboto_medium</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_gravity">center</item>
+    </style>
+
+    <style name="InfoTextStyle">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">#757575</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
     </style>
 
 </resources>

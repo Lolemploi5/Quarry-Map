@@ -34,6 +34,9 @@ class ImageAdapter(
     private val onItemClick: (String) -> Unit
 ) : RecyclerView.Adapter<ImageAdapter.ImageViewHolder>() {
 
+    // Propriété pour indiquer si nous sommes dans la vue des favoris
+    var isInFavoritesView: Boolean = false
+
     // Liste mutable pour gérer les modifications
     private val mutableImages = images.toMutableList()
     
@@ -42,14 +45,23 @@ class ImageAdapter(
         fun onImageRenamed(oldPath: String, newPath: String)
     }
     
-    // Écouteur pour le renommage d'image
+    // Interface pour la gestion des favoris
+    interface OnFavoriteChangeListener {
+        fun onFavoriteAdded(imagePath: String)
+        fun onFavoriteRemoved(imagePath: String)
+        fun isFavorite(imagePath: String): Boolean
+    }
+    
+    // Écouteurs
     var onImageRenamedListener: OnImageRenamedListener? = null
+    var onFavoriteChangeListener: OnFavoriteChangeListener? = null
 
     class ImageViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val planchePreview: ImageView = view.findViewById(R.id.planchePreview)
         val plancheName: TextView = view.findViewById(R.id.plancheName)
         val infoText: TextView = view.findViewById(R.id.infoText)
         val renameButton: ImageButton = view.findViewById(R.id.renameButton)
+        val favoriteButton: ImageButton = view.findViewById(R.id.favoriteButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageViewHolder {
@@ -76,7 +88,21 @@ class ImageAdapter(
         
         // Afficher les informations du fichier
         val fileInfo = getFileInfo(file, holder.itemView.context)
-        holder.infoText.text = fileInfo
+        
+        // Si nous sommes dans la vue des favoris, ajouter l'info de la commune
+        if (isInFavoritesView) {
+            val commune = getCommuneFromPath(imagePath)
+            if (commune.isNotEmpty()) {
+                holder.infoText.text = "$fileInfo • $commune"
+            } else {
+                holder.infoText.text = fileInfo
+            }
+        } else {
+            holder.infoText.text = fileInfo
+        }
+
+        // Mettre à jour l'état du bouton favori
+        updateFavoriteButton(holder.favoriteButton, imagePath)
 
         if (!file.exists()) {
             Log.e("ImageAdapter", "ERREUR: Le fichier n'existe pas: $imagePath")
@@ -153,6 +179,13 @@ class ImageAdapter(
             // Éviter que le clic sur le bouton ne déclenche aussi le clic sur la carte
             it.isClickable = true
             showRenameDialog(holder.itemView.context, file, position)
+        }
+        
+        // Configuration du bouton de favori
+        holder.favoriteButton.setOnClickListener {
+            // Éviter que le clic ne déclenche aussi le clic sur la carte
+            it.isClickable = true
+            toggleFavorite(imagePath, holder.favoriteButton)
         }
 
         holder.itemView.setOnClickListener { 
@@ -291,5 +324,42 @@ class ImageAdapter(
         mutableImages.clear()
         mutableImages.addAll(newImages)
         notifyDataSetChanged()
+    }
+    
+    private fun updateFavoriteButton(button: ImageButton, imagePath: String) {
+        val isFavorite = onFavoriteChangeListener?.isFavorite(imagePath) ?: false
+        button.setImageResource(
+            if (isFavorite) R.drawable.ic_favorite_filled
+            else R.drawable.ic_favorite_border
+        )
+    }
+    
+    private fun toggleFavorite(imagePath: String, button: ImageButton) {
+        val listener = onFavoriteChangeListener ?: return
+        val isFavorite = listener.isFavorite(imagePath)
+        
+        if (isFavorite) {
+            listener.onFavoriteRemoved(imagePath)
+            button.setImageResource(R.drawable.ic_favorite_border)
+        } else {
+            listener.onFavoriteAdded(imagePath)
+            button.setImageResource(R.drawable.ic_favorite_filled)
+        }
+    }
+
+    // Extraire le nom de la commune à partir du chemin du fichier
+    private fun getCommuneFromPath(path: String): String {
+        try {
+            val file = File(path)
+            val parentFolder = file.parentFile
+            
+            if (parentFolder != null) {
+                return parentFolder.name
+            }
+        } catch (e: Exception) {
+            Log.e("ImageAdapter", "Erreur lors de l'extraction de la commune", e)
+        }
+        
+        return ""
     }
 }
