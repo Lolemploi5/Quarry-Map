@@ -79,9 +79,18 @@ class MainActivity : AppCompatActivity() {
         // Initialiser le helper de notification
         notificationHelper = NotificationHelper(this)
         
-        // Configuration de la toolbar
-        setSupportActionBar(binding.topAppBar)
-
+        // Configuration de la toolbar - obtenir par findViewById car elle est dans un include
+        val topAppBar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.topAppBar)
+        setSupportActionBar(topAppBar)
+        supportActionBar?.apply {
+            setDisplayShowTitleEnabled(false) // Masquer le titre par défaut
+            elevation = resources.getDimension(R.dimen.toolbar_elevation)
+        }
+        
+        // Définir le titre de la toolbar
+        val toolbarTitle = findViewById<TextView>(R.id.toolbarTitle)
+        toolbarTitle.text = getString(R.string.app_name)
+        
         // Initialiser les vues de la navbar
         tabCommunes = findViewById(R.id.tab_communes)
         tabFavorites = findViewById(R.id.tab_favorites)
@@ -148,12 +157,14 @@ class MainActivity : AppCompatActivity() {
             networkInfo?.isConnected == true
         }
 
+        val toolbarTitle = findViewById<TextView>(R.id.toolbarTitle)
+        
         if (!isConnected) {
-            binding.topAppBar.findViewById<TextView>(R.id.toolbarTitle).visibility = View.GONE
+            toolbarTitle.visibility = View.GONE
             binding.offlineBanner.visibility = View.VISIBLE
             binding.addButton.visibility = View.GONE
         } else {
-            binding.topAppBar.findViewById<TextView>(R.id.toolbarTitle).visibility = View.VISIBLE
+            toolbarTitle.visibility = View.VISIBLE
             binding.offlineBanner.visibility = View.GONE
             binding.addButton.visibility = View.VISIBLE
         }

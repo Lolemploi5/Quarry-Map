@@ -5,75 +5,9 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <com.google.android.material.appbar.AppBarLayout
+    <include
         android:id="@+id/appBarLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/topAppBar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            android:elevation="4dp"
-            app:contentInsetStartWithNavigation="12dp"
-            app:contentInsetEndWithActions="0dp"
-            app:titleMarginStart="12dp"
-            app:titleTextAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-            app:titleTextColor="@android:color/white">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@mipmap/ic_launcher"
-                    android:layout_marginEnd="12dp" />
-
-                <TextView
-                    android:id="@+id/toolbarTitle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="QuarryMap"
-                    android:textColor="@android:color/white"
-                    android:textSize="20sp"
-                    android:fontFamily="@font/roboto_medium" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/fab"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_gravity="end|center_vertical"
-                    android:layout_marginEnd="12dp"
-                    android:text="Importer"
-                    android:textAllCaps="false"
-                    android:fontFamily="@font/roboto_medium"
-                    android:textSize="14sp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="16dp"
-                    android:minHeight="0dp"
-                    android:minWidth="0dp"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    app:icon="@android:drawable/ic_input_add"
-                    app:iconTint="@android:color/white"
-                    app:iconSize="18dp"
-                    app:iconPadding="8dp"
-                    app:cornerRadius="18dp"
-                    app:elevation="0dp"
-                    app:rippleColor="#33FFFFFF"
-                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton" />
-
-            </LinearLayout>
-
-        </com.google.android.material.appbar.MaterialToolbar>
-    </com.google.android.material.appbar.AppBarLayout>
+        layout="@layout/toolbar_layout" />
 
     <TextView
         android:id="@+id/offlineBanner"
