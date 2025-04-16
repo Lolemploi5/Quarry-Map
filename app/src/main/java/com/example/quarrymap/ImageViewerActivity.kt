@@ -2,194 +2,168 @@ package com.example.quarrymap
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
-import android.graphics.drawable.PictureDrawable
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import androidx.core.content.FileProvider
 import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
-import com.example.quarrymap.GlideApp
+import com.github.chrisbanes.photoview.PhotoView
 import java.io.File
 
 class ImageViewerActivity : AppCompatActivity() {
 
-    private lateinit var imageView: SubsamplingScaleImageView
-    private lateinit var vectorImageView: ImageView
-    private lateinit var prefs: SharedPreferences
-    private var currentImagePath: String? = null
-    private val TAG = "ImageViewerActivity"
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_image_viewer)
-
-        imageView = findViewById(R.id.imageView)
-        vectorImageView = findViewById(R.id.vectorImageView)
-
-        prefs = getSharedPreferences("favorites_prefs", MODE_PRIVATE)
-        currentImagePath = intent.getStringExtra(EXTRA_IMAGE_PATH)
-
-        val imagePath = intent.getStringExtra(EXTRA_IMAGE_PATH)
-        if (imagePath != null) {
-            val file = File(imagePath)
-            Log.d(TAG, "Tentative de chargement de l'image: $imagePath")
-            
-            if (!file.exists()) {
-                Log.e(TAG, "ERREUR: Le fichier n'existe pas: $imagePath")
-                return
-            }
-            
-            val fileSize = file.length()
-            Log.d(TAG, "Fichier: ${file.name}, Taille: $fileSize bytes, Chemin: $imagePath")
-            
-            if (fileSize <= 0) {
-                Log.e(TAG, "ERREUR: Fichier vide ou inaccessible: ${file.name}")
-                return
-            }
-            
-            val extension = file.extension.lowercase()
-            Log.d(TAG, "Extension du fichier: $extension")
-            
-            val isSvg = extension == "svg"
-            val isVector = extension in listOf("xml", "vector")
-            val isJpg = extension in listOf("jpg", "jpeg")
-            
-            Log.d(TAG, "Type de fichier détecté: isSvg=$isSvg, isVector=$isVector, isJpg=$isJpg")
-            
-            try {
-                if (isSvg || isVector) {
-                    // Pour les images vectorielles, utiliser ImageView avec Glide
-                    Log.d(TAG, "Utilisation du mode vectoriel pour: ${file.name}")
-                    imageView.visibility = View.GONE
-                    vectorImageView.visibility = View.VISIBLE
-                    
-                    if (isSvg) {
-                        try {
-                            Log.d(TAG, "Chargement d'une image SVG avec GlideApp: ${file.name}")
-                            GlideApp.with(this)
-                                .`as`(PictureDrawable::class.java)
-                                .load(Uri.fromFile(file))
-                                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                                .transition(DrawableTransitionOptions.withCrossFade())
-                                .into(vectorImageView)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Erreur avec le module SVG, essai avec le chargement standard", e)
-                            Glide.with(this)
-                                .load(Uri.fromFile(file))
-                                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                                .into(vectorImageView)
-                        }
-                    } else {
-                        Log.d(TAG, "Chargement d'une image vectorielle XML: ${file.name}")
-                        Glide.with(this)
-                            .load(Uri.fromFile(file))
-                            .diskCacheStrategy(DiskCacheStrategy.ALL)
-                            .transition(DrawableTransitionOptions.withCrossFade())
-                            .into(vectorImageView)
-                    }
-                } else if (isJpg) {
-                    Log.d(TAG, "Chargement d'une image JPG: ${file.name}")
-                    imageView.visibility = View.VISIBLE
-                    vectorImageView.visibility = View.GONE
-                    
-                    try {
-                        Log.d(TAG, "Tentative de chargement JPG avec Uri.fromFile: ${file.name}")
-                        imageView.setImage(ImageSource.uri(Uri.fromFile(file).toString()))
-                        imageView.setMinimumScaleType(SubsamplingScaleImageView.SCALE_TYPE_CENTER_INSIDE)
-                        imageView.setMaxScale(20f)
-                        imageView.setDoubleTapZoomScale(5f)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Erreur avec Uri.fromFile pour JPG, essai avec le chemin direct", e)
-                        imageView.setImage(ImageSource.uri(imagePath))
-                        imageView.setMinimumScaleType(SubsamplingScaleImageView.SCALE_TYPE_CENTER_INSIDE)
-                        imageView.setMaxScale(20f)
-                        imageView.setDoubleTapZoomScale(5f)
-                    }
-                } else {
-                    Log.d(TAG, "Chargement d'une image bitmap standard: ${file.name}")
-                    imageView.visibility = View.VISIBLE
-                    vectorImageView.visibility = View.GONE
-                    
-                    imageView.setImage(ImageSource.uri(imagePath))
-                    imageView.setMinimumScaleType(SubsamplingScaleImageView.SCALE_TYPE_CENTER_INSIDE)
-                    imageView.setMaxScale(20f) // Permet un zoom jusqu'à 20x
-                    imageView.setDoubleTapZoomScale(5f) // Double-tap pour zoomer à 5x
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Erreur lors du chargement de l'image: $imagePath", e)
-                e.printStackTrace() // Afficher la stack trace complète
-            }
-        } else {
-            Log.e(TAG, "Image path is null")
-        }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_image_viewer, menu)
-        
-        // Mettre à jour l'icône du favori en fonction de l'état
-        updateFavoriteIcon(menu.findItem(R.id.menu_favorite))
-        
-        return true
-    }
-    
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.menu_favorite -> {
-                toggleFavorite()
-                updateFavoriteIcon(item)
-                true
-            }
-            // ...autres options...
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-    
-    private fun toggleFavorite() {
-        val path = currentImagePath ?: return
-        
-        val favorites = prefs.getStringSet("favorite_images", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
-        
-        if (favorites.contains(path)) {
-            favorites.remove(path)
-            Toast.makeText(this, "Retiré des favoris", Toast.LENGTH_SHORT).show()
-        } else {
-            favorites.add(path)
-            Toast.makeText(this, "Ajouté aux favoris", Toast.LENGTH_SHORT).show()
-        }
-        
-        prefs.edit().putStringSet("favorite_images", favorites).apply()
-    }
-    
-    private fun updateFavoriteIcon(item: MenuItem) {
-        val path = currentImagePath ?: return
-        val favorites = prefs.getStringSet("favorite_images", mutableSetOf()) ?: mutableSetOf()
-        
-        if (favorites.contains(path)) {
-            item.setIcon(R.drawable.ic_favorite_filled)
-        } else {
-            item.setIcon(R.drawable.ic_favorite_border)
-        }
-    }
+    private lateinit var imageView: View
+    private var imagePath: String? = null
 
     companion object {
-        private const val EXTRA_IMAGE_PATH = "IMAGE_PATH"
-
+        private const val EXTRA_IMAGE_PATH = "extra_image_path"
+        
         fun start(context: Context, imagePath: String) {
             val intent = Intent(context, ImageViewerActivity::class.java).apply {
                 putExtra(EXTRA_IMAGE_PATH, imagePath)
             }
             context.startActivity(intent)
         }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_image_viewer)
+        
+        // Configuration de la toolbar
+        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            setDisplayShowTitleEnabled(false)
+        }
+        
+        // Récupérer le chemin de l'image depuis l'intent
+        imagePath = intent.getStringExtra(EXTRA_IMAGE_PATH)
+        if (imagePath == null) {
+            Toast.makeText(this, "Erreur: Aucune image spécifiée", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+        
+        // Initialiser les vues
+        val photoView = findViewById<PhotoView>(R.id.photoView)
+        val subsamplingView = findViewById<SubsamplingScaleImageView>(R.id.subsamplingView)
+        
+        // Configurer le partage d'image
+        findViewById<View>(R.id.shareButton).setOnClickListener {
+            shareImage()
+        }
+        
+        // Charger l'image
+        loadImage(photoView, subsamplingView)
+    }
+    
+    private fun loadImage(photoView: PhotoView, subsamplingView: SubsamplingScaleImageView) {
+        val imageFile = File(imagePath!!)
+        
+        if (!imageFile.exists() || imageFile.length() == 0L) {
+            Toast.makeText(this, "Erreur: Fichier image invalide", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+        
+        try {
+            val extension = imageFile.extension.lowercase()
+            
+            if (extension in listOf("jpg", "jpeg", "png")) {
+                val options = BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                BitmapFactory.decodeFile(imageFile.absolutePath, options)
+                
+                // Déterminer si l'image est de grande taille
+                val isLargeImage = options.outWidth > 4000 || options.outHeight > 4000
+                
+                if (isLargeImage) {
+                    // Utiliser SubsamplingScaleImageView pour les grandes images
+                    photoView.visibility = View.GONE
+                    subsamplingView.visibility = View.VISIBLE
+                    imageView = subsamplingView
+                    
+                    subsamplingView.setImage(ImageSource.uri(imageFile.absolutePath))
+                    subsamplingView.setMinimumScaleType(SubsamplingScaleImageView.SCALE_TYPE_CENTER_INSIDE)
+                } else {
+                    // Utiliser PhotoView pour les images normales
+                    photoView.visibility = View.VISIBLE
+                    subsamplingView.visibility = View.GONE
+                    imageView = photoView
+                    
+                    val bitmap = BitmapFactory.decodeFile(imageFile.absolutePath)
+                    photoView.setImageBitmap(bitmap)
+                }
+            } else if (extension == "svg") {
+                // Utiliser PhotoView pour les SVG
+                photoView.visibility = View.VISIBLE
+                subsamplingView.visibility = View.GONE
+                imageView = photoView
+                
+                // Charger l'image SVG avec Glide et SVG support
+                GlideApp.with(this)
+                    .load(Uri.fromFile(imageFile))
+                    .into(photoView)
+            } else {
+                // Fallback pour les autres types de fichiers
+                photoView.visibility = View.VISIBLE
+                subsamplingView.visibility = View.GONE
+                imageView = photoView
+                
+                GlideApp.with(this)
+                    .load(Uri.fromFile(imageFile))
+                    .into(photoView)
+            }
+            
+            // Définir le titre avec le nom du fichier
+            supportActionBar?.title = imageFile.name
+            
+        } catch (e: Exception) {
+            Log.e("ImageViewer", "Erreur lors du chargement de l'image", e)
+            Toast.makeText(this, "Erreur lors du chargement de l'image: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun shareImage() {
+        imagePath?.let { path ->
+            try {
+                val imageFile = File(path)
+                val uri = FileProvider.getUriForFile(
+                    this,
+                    "$packageName.fileprovider",
+                    imageFile
+                )
+                
+                val shareIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    type = "image/*"
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                
+                startActivity(Intent.createChooser(shareIntent, "Partager l'image via"))
+            } catch (e: Exception) {
+                Log.e("ImageViewer", "Erreur lors du partage de l'image", e)
+                Toast.makeText(this, "Erreur lors du partage de l'image: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home) {
+            onBackPressed()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 }

@@ -64,10 +64,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private lateinit var tabMap: LinearLayout
     private lateinit var tabCommunes: LinearLayout
     private lateinit var tabFavorites: LinearLayout
+    private lateinit var iconMap: ImageView
     private lateinit var iconCommunes: ImageView
     private lateinit var iconFavorites: ImageView
+    private lateinit var mapFragment: MapFragment
     private lateinit var communesFragment: CommunesFragment
     private lateinit var favoritesFragment: FavoritesFragment
 
@@ -92,22 +95,25 @@ class MainActivity : AppCompatActivity() {
         toolbarTitle.text = getString(R.string.app_name)
         
         // Initialiser les vues de la navbar
+        tabMap = findViewById(R.id.tab_map)
         tabCommunes = findViewById(R.id.tab_communes)
         tabFavorites = findViewById(R.id.tab_favorites)
+        iconMap = findViewById(R.id.icon_map)
         iconCommunes = findViewById(R.id.icon_communes)
         iconFavorites = findViewById(R.id.icon_favorites)
         
         // Initialiser les fragments
+        mapFragment = MapFragment()
         communesFragment = CommunesFragment()
         favoritesFragment = FavoritesFragment()
         
         // Configurer les écouteurs d'événements pour la navbar
         setupBottomNavBar()
         
-        // Charger le fragment des communes par défaut
+        // Charger le fragment de la carte par défaut
         if (savedInstanceState == null) {
-            loadFragment(communesFragment)
-            updateNavBarState(true, false)
+            loadFragment(mapFragment)
+            updateNavBarState(true, false, false)
         }
 
         // Mettre à jour le référencement du bouton d'ajout
@@ -558,23 +564,32 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun setupBottomNavBar() {
+        tabMap.setOnClickListener {
+            loadFragment(mapFragment)
+            updateNavBarState(true, false, false)
+        }
+        
         tabCommunes.setOnClickListener {
             loadFragment(communesFragment)
-            updateNavBarState(true, false)
+            updateNavBarState(false, true, false)
         }
         
         tabFavorites.setOnClickListener {
             loadFragment(favoritesFragment)
-            updateNavBarState(false, true)
+            updateNavBarState(false, false, true)
         }
     }
     
-    private fun updateNavBarState(communesSelected: Boolean, favoritesSelected: Boolean) {
+    private fun updateNavBarState(mapSelected: Boolean, communesSelected: Boolean, favoritesSelected: Boolean) {
         // Mettre à jour les icônes
+        iconMap.setImageAlpha(if (mapSelected) 255 else 128)
         iconCommunes.setImageAlpha(if (communesSelected) 255 else 128)
         iconFavorites.setImageAlpha(if (favoritesSelected) 255 else 128)
         
         // Mettre à jour les textes
+        (tabMap.getChildAt(1) as TextView).setTextColor(
+            if (mapSelected) 0xFFFFFFFF.toInt() else 0x80FFFFFF.toInt()
+        )
         (tabCommunes.getChildAt(1) as TextView).setTextColor(
             if (communesSelected) 0xFFFFFFFF.toInt() else 0x80FFFFFF.toInt()
         )
@@ -593,6 +608,16 @@ class MainActivity : AppCompatActivity() {
         if (::communesFragment.isInitialized && 
             supportFragmentManager.findFragmentById(R.id.container) is CommunesFragment) {
             communesFragment.refreshCommunes()
+        }
+    }
+
+    // Gérer le bouton retour pour la navigation dans la WebView
+    override fun onBackPressed() {
+        val currentFragment = supportFragmentManager.findFragmentById(R.id.container)
+        if (currentFragment is MapFragment && currentFragment.canGoBack()) {
+            currentFragment.goBack()
+        } else {
+            super.onBackPressed()
         }
     }
 }
