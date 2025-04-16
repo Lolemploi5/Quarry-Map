@@ -46,6 +46,22 @@ class CommuneActivity : AppCompatActivity() {
             ImageViewerActivity.start(this, imagePath)
         }
         recyclerView.adapter = adapter
+
+        // Définir l'écouteur de renommage
+        adapter.onImageRenamedListener = object : ImageAdapter.OnImageRenamedListener {
+            override fun onImageRenamed(oldPath: String, newPath: String) {
+                // Mettre à jour la liste des images si nécessaire
+                val index = images.indexOf(oldPath)
+                if (index != -1) {
+                    images[index] = newPath
+                }
+                
+                // Si vous avez un cache ou autre chose à mettre à jour
+                // updateCache(oldPath, newPath)
+                
+                Log.d("CommuneActivity", "Image renommée: $oldPath -> $newPath")
+            }
+        }
     }
     
     private fun loadImagesForCommune(communeName: String, customBasePath: String? = null) {
