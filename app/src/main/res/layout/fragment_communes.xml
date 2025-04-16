@@ -22,6 +22,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:iconifiedByDefault="false"
+            android:clickable="true"
+            android:focusable="true"
             android:queryHint="Rechercher une commune..." />
     </androidx.cardview.widget.CardView>
 

@@ -75,6 +75,16 @@ class CommunesFragment : Fragment() {
     }
     
     private fun setupSearchView() {
+        // Rendre toute la zone de recherche cliquable, pas juste la carte
+        searchView.setOnClickListener {
+            searchView.isIconified = false
+            searchView.requestFocus()
+            
+            // Afficher le clavier virtuel
+            val imm = requireActivity().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(searchView.findFocus(), InputMethodManager.SHOW_IMPLICIT)
+        }
+        
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 filterCommunes(query)

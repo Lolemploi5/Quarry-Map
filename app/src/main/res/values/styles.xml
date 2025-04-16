@@ -13,6 +13,11 @@
         <!-- Style du texte -->
         <item name="android:textSize">16sp</item>
         <item name="android:fontFamily">@font/roboto_regular</item>
+        
+        <!-- Rendre la SearchView plus accessible -->
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:focusableInTouchMode">true</item>
     </style>
     
     <style name="CardStyle">
