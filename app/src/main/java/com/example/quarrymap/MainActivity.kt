@@ -7,13 +7,14 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.InputMethodManager
-import android.widget.Toast
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -28,8 +29,6 @@ import java.io.File
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
-import android.os.Build
-
 
 class MainActivity : AppCompatActivity() {
     
@@ -81,13 +80,31 @@ class MainActivity : AppCompatActivity() {
         checkNetworkStatus()
 
         // Enregistrer le BroadcastReceiver pour les changements de connectivité
-        registerReceiver(networkReceiver, IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            // Utilisation de l'approche dépréciée pour les anciennes versions d'Android
+            @Suppress("DEPRECATION")
+            registerReceiver(networkReceiver, IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
+        } else {
+            // Pour les versions plus récentes, on peut s'abonner aux mises à jour du gestionnaire de connectivité
+            // Note: cette méthode sera appelée dans onResume() et désenregistrée dans onPause()
+            checkNetworkStatus() // Vérifier l'état initial
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Pour les versions plus récentes d'Android, vérifier régulièrement l'état du réseau
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            checkNetworkStatus()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Désenregistrer le BroadcastReceiver
-        unregisterReceiver(networkReceiver)
+        // Désenregistrer le BroadcastReceiver uniquement si nécessaire
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            unregisterReceiver(networkReceiver)
+        }
     }
 
     private fun checkNetworkStatus() {
@@ -98,7 +115,10 @@ class MainActivity : AppCompatActivity() {
             val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
             networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
         } else {
+            // Méthode dépréciée mais nécessaire pour les anciennes versions d'Android
+            @Suppress("DEPRECATION")
             val networkInfo = connectivityManager.activeNetworkInfo
+            @Suppress("DEPRECATION")
             networkInfo?.isConnected == true
         }
 
@@ -196,7 +216,6 @@ class MainActivity : AppCompatActivity() {
                     baseDir.mkdirs()
                 }
                 
-                val docUri = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
                 val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
                 
                 var totalImages = 0
