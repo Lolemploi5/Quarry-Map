@@ -14,6 +14,7 @@ class CommuneActivity : AppCompatActivity() {
     private lateinit var adapter: ImageAdapter
     private val images = mutableListOf<String>()
     private val TAG = "CommuneActivity"
+    private lateinit var favoriteManager: FavoriteManager
 
     companion object {
         const val EXTRA_COMMUNE = "COMMUNE"
@@ -46,6 +47,25 @@ class CommuneActivity : AppCompatActivity() {
             ImageViewerActivity.start(this, imagePath)
         }
         recyclerView.adapter = adapter
+
+        favoriteManager = FavoriteManager(this)
+        
+        // Configurer l'adaptateur avec les écouteurs
+        adapter.onFavoriteChangeListener = object : ImageAdapter.OnFavoriteChangeListener {
+            override fun onFavoriteAdded(imagePath: String) {
+                favoriteManager.addFavorite(imagePath)
+                Toast.makeText(this@CommuneActivity, "Ajouté aux favoris", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onFavoriteRemoved(imagePath: String) {
+                favoriteManager.removeFavorite(imagePath)
+                Toast.makeText(this@CommuneActivity, "Retiré des favoris", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun isFavorite(imagePath: String): Boolean {
+                return favoriteManager.isFavorite(imagePath)
+            }
+        }
 
         // Définir l'écouteur de renommage
         adapter.onImageRenamedListener = object : ImageAdapter.OnImageRenamedListener {

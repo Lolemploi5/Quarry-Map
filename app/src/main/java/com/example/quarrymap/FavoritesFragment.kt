@@ -1,22 +1,24 @@
 package com.example.quarrymap
 
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.io.File
 
-class FavoritesFragment : Fragment() {
+class FavoritesFragment : Fragment(), ImageAdapter.OnFavoriteChangeListener {
     
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyText: TextView
-    private lateinit var prefs: SharedPreferences
+    private lateinit var favoriteManager: FavoriteManager
+    private lateinit var adapter: ImageAdapter
     
     override fun onCreateView(
         inflater: LayoutInflater, 
@@ -32,10 +34,9 @@ class FavoritesFragment : Fragment() {
         recyclerView = view.findViewById(R.id.favoritesRecyclerView)
         emptyText = view.findViewById(R.id.emptyFavoritesText)
         
-        prefs = requireContext().getSharedPreferences("favorites_prefs", android.content.Context.MODE_PRIVATE)
+        favoriteManager = FavoriteManager(requireContext())
         
         setupRecyclerView()
-        loadFavorites()
     }
     
     override fun onResume() {
@@ -45,23 +46,38 @@ class FavoritesFragment : Fragment() {
     
     private fun setupRecyclerView() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = ImageAdapter(emptyList()) { imagePath ->
+        adapter = ImageAdapter(emptyList()) { imagePath ->
             // Ouvrir la visionneuse d'image
             val intent = Intent(requireContext(), ImageViewerActivity::class.java).apply {
                 putExtra("IMAGE_PATH", imagePath)
             }
             startActivity(intent)
         }
+        
+        // Configurer l'adaptateur avec l'écouteur pour les favoris
+        adapter.onFavoriteChangeListener = this
+        
+        // Configurer l'écouteur pour le renommage
+        adapter.onImageRenamedListener = object : ImageAdapter.OnImageRenamedListener {
+            override fun onImageRenamed(oldPath: String, newPath: String) {
+                favoriteManager.updatePath(oldPath, newPath)
+                loadFavorites()
+            }
+        }
+        
+        recyclerView.adapter = adapter
     }
     
     private fun loadFavorites() {
-        val favoritesSet = prefs.getStringSet("favorite_images", mutableSetOf()) ?: mutableSetOf()
+        val favorites = favoriteManager.getFavorites().toList()
         
         // Filtrer les chemins qui existent toujours
-        val validPaths = favoritesSet.filter { File(it).exists() }
+        val validPaths = favorites.filter { File(it).exists() }
+        
+        Log.d("FavoritesFragment", "Chargement des favoris: ${validPaths.size} éléments valides")
         
         // Mettre à jour l'affichage
-        (recyclerView.adapter as? ImageAdapter)?.updateData(validPaths)
+        adapter.updateData(validPaths)
         
         // Afficher ou masquer le message "pas de favoris"
         if (validPaths.isEmpty()) {
@@ -73,9 +89,25 @@ class FavoritesFragment : Fragment() {
         }
         
         // Nettoyer les favoris qui n'existent plus
-        if (favoritesSet.size != validPaths.size) {
-            val newFavoritesSet = validPaths.toMutableSet()
-            prefs.edit().putStringSet("favorite_images", newFavoritesSet).apply()
+        favorites.filter { !File(it).exists() }.forEach {
+            favoriteManager.removeFavorite(it)
         }
+    }
+    
+    // Implémentation des méthodes de l'interface OnFavoriteChangeListener
+    override fun onFavoriteAdded(imagePath: String) {
+        favoriteManager.addFavorite(imagePath)
+        loadFavorites()
+        Toast.makeText(requireContext(), "Ajouté aux favoris", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onFavoriteRemoved(imagePath: String) {
+        favoriteManager.removeFavorite(imagePath)
+        loadFavorites()
+        Toast.makeText(requireContext(), "Retiré des favoris", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun isFavorite(imagePath: String): Boolean {
+        return favoriteManager.isFavorite(imagePath)
     }
 }
