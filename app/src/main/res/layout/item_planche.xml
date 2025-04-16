@@ -35,6 +35,21 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
 
+        <!-- Bouton de renommage avec correction du background -->
+        <ImageButton
+            android:id="@+id/renameButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:layout_marginBottom="4dp"
+            android:background="?attr/selectableItemBackground"
+            android:contentDescription="Renommer"
+            android:padding="8dp"
+            android:src="@drawable/ic_rename"
+            app:layout_constraintBottom_toBottomOf="@+id/planchePreview"
+            app:layout_constraintEnd_toEndOf="@+id/planchePreview"
+            app:tint="@android:color/white" />
+
         <TextView
             android:id="@+id/plancheName"
             android:layout_width="0dp"
@@ -52,7 +67,7 @@
             android:textSize="16sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="@+id/planchePreview"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/renameButton"
             app:layout_constraintStart_toStartOf="parent"
             tools:text="Nom du fichier.jpg" />
 

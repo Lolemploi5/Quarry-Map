@@ -1,14 +1,21 @@
 package com.example.quarrymap
 
+import android.app.AlertDialog
+import android.content.Context
 import android.graphics.drawable.PictureDrawable
 import android.net.Uri
+import android.text.InputType
 import android.text.format.Formatter
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
@@ -26,10 +33,22 @@ class ImageAdapter(
     private val onItemClick: (String) -> Unit
 ) : RecyclerView.Adapter<ImageAdapter.ImageViewHolder>() {
 
+    // Liste mutable pour gérer les modifications
+    private val mutableImages = images.toMutableList()
+    
+    // Interface pour notifier l'activité parente du renommage
+    interface OnImageRenamedListener {
+        fun onImageRenamed(oldPath: String, newPath: String)
+    }
+    
+    // Écouteur pour le renommage d'image
+    var onImageRenamedListener: OnImageRenamedListener? = null
+
     class ImageViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val planchePreview: ImageView = view.findViewById(R.id.planchePreview)
         val plancheName: TextView = view.findViewById(R.id.plancheName)
         val infoText: TextView = view.findViewById(R.id.infoText)
+        val renameButton: ImageButton = view.findViewById(R.id.renameButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageViewHolder {
@@ -48,7 +67,7 @@ class ImageAdapter(
     }
     
     override fun onBindViewHolder(holder: ImageViewHolder, position: Int) {
-        val imagePath = images[position]
+        val imagePath = mutableImages[position]
         val file = File(imagePath)
         
         // Format plus élégant du nom de fichier
@@ -128,6 +147,13 @@ class ImageAdapter(
             holder.planchePreview.setImageResource(R.drawable.ic_broken_image)
         }
 
+        // Configuration du bouton de renommage
+        holder.renameButton.setOnClickListener {
+            // Éviter que le clic sur le bouton ne déclenche aussi le clic sur la carte
+            it.isClickable = true
+            showRenameDialog(holder.itemView.context, file, position)
+        }
+
         holder.itemView.setOnClickListener { 
             // Animation subtile lors du clic
             it.animate()
@@ -145,6 +171,74 @@ class ImageAdapter(
                     onItemClick(imagePath)
                 }
                 .start()
+        }
+    }
+
+    // Afficher la boîte de dialogue de renommage
+    private fun showRenameDialog(context: Context, file: File, position: Int) {
+        val input = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_TEXT
+            setText(file.nameWithoutExtension)
+            selectAll()
+            setPadding(50, 30, 50, 30)
+        }
+        
+        AlertDialog.Builder(context)
+            .setTitle("Renommer la planche")
+            .setView(input)
+            .setPositiveButton("Renommer") { _, _ ->
+                val newName = input.text.toString().trim()
+                if (newName.isNotEmpty()) {
+                    renameFile(context, file, newName, position)
+                }
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
+            
+        // Afficher automatiquement le clavier
+        input.post {
+            input.requestFocus()
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
+        }
+    }
+    
+    // Renommer le fichier et mettre à jour l'interface
+    private fun renameFile(context: Context, file: File, newName: String, position: Int) {
+        try {
+            val extension = file.extension
+            val directory = file.parentFile
+            val newFile = File(directory, "$newName.$extension")
+            
+            // Vérifier si un fichier avec ce nom existe déjà
+            if (newFile.exists()) {
+                Toast.makeText(context, "Un fichier avec ce nom existe déjà", Toast.LENGTH_SHORT).show()
+                return
+            }
+            
+            val oldPath = file.absolutePath
+            
+            // Renommer le fichier
+            val success = file.renameTo(newFile)
+            if (success) {
+                val newPath = newFile.absolutePath
+                
+                // Mettre à jour notre liste interne
+                mutableImages[position] = newPath
+                notifyItemChanged(position)
+                
+                // Notifier l'activité parente
+                onImageRenamedListener?.onImageRenamed(oldPath, newPath)
+                
+                Log.d("ImageAdapter", "Fichier renommé avec succès: ${file.name} -> ${newFile.name}")
+                Toast.makeText(context, "Planche renommée avec succès", Toast.LENGTH_SHORT).show()
+            } else {
+                Log.e("ImageAdapter", "Échec du renommage: ${file.name}")
+                Toast.makeText(context, "Échec du renommage du fichier", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Log.e("ImageAdapter", "Erreur lors du renommage du fichier", e)
+            Toast.makeText(context, "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -174,5 +268,12 @@ class ImageAdapter(
         return "$dimensions$fileSize"
     }
 
-    override fun getItemCount(): Int = images.size
+    override fun getItemCount(): Int = mutableImages.size
+    
+    // Permet de mettre à jour complètement la liste
+    fun updateData(newImages: List<String>) {
+        mutableImages.clear()
+        mutableImages.addAll(newImages)
+        notifyDataSetChanged()
+    }
 }
