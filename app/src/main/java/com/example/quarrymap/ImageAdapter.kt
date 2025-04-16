@@ -190,9 +190,6 @@ class ImageAdapter(
             .setView(dialogView)
             .create()
         
-        // Configurer les coins arrondis
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        
         // Configurer les boutons
         val buttonCancel = dialogView.findViewById<Button>(R.id.button_cancel)
         val buttonRename = dialogView.findViewById<Button>(R.id.button_rename)

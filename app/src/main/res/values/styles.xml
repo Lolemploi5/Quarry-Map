@@ -98,13 +98,14 @@
     </style>
 
     <style name="DarkAlertDialog" parent="Theme.AppCompat.Dialog.Alert">
-        <item name="android:background">#2A2A2A</item>
+        <item name="android:background">@android:color/transparent</item>
         <item name="android:textColorPrimary">#EFEFEF</item>
         <item name="android:textColorSecondary">#AAAAAA</item>
         <item name="android:windowMinWidthMajor">75%</item>
         <item name="android:windowMinWidthMinor">75%</item>
         <item name="android:windowAnimationStyle">@style/DialogAnimation</item>
         <item name="android:buttonBarButtonStyle">@style/DarkAlertDialog.Button</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 
     <style name="DarkAlertDialog.Button" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
