@@ -65,6 +65,9 @@ class FavoritesFragment : Fragment(), ImageAdapter.OnFavoriteChangeListener {
             startActivity(intent)
         }
         
+        // Indiquer à l'adaptateur qu'il s'agit de la vue des favoris
+        adapter.isInFavoritesView = true
+        
         // Configurer l'adaptateur avec l'écouteur pour les favoris
         adapter.onFavoriteChangeListener = this
         

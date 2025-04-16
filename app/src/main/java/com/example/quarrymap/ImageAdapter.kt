@@ -34,6 +34,9 @@ class ImageAdapter(
     private val onItemClick: (String) -> Unit
 ) : RecyclerView.Adapter<ImageAdapter.ImageViewHolder>() {
 
+    // Propriété pour indiquer si nous sommes dans la vue des favoris
+    var isInFavoritesView: Boolean = false
+
     // Liste mutable pour gérer les modifications
     private val mutableImages = images.toMutableList()
     
@@ -85,7 +88,18 @@ class ImageAdapter(
         
         // Afficher les informations du fichier
         val fileInfo = getFileInfo(file, holder.itemView.context)
-        holder.infoText.text = fileInfo
+        
+        // Si nous sommes dans la vue des favoris, ajouter l'info de la commune
+        if (isInFavoritesView) {
+            val commune = getCommuneFromPath(imagePath)
+            if (commune.isNotEmpty()) {
+                holder.infoText.text = "$fileInfo • $commune"
+            } else {
+                holder.infoText.text = fileInfo
+            }
+        } else {
+            holder.infoText.text = fileInfo
+        }
 
         // Mettre à jour l'état du bouton favori
         updateFavoriteButton(holder.favoriteButton, imagePath)
@@ -331,5 +345,21 @@ class ImageAdapter(
             listener.onFavoriteAdded(imagePath)
             button.setImageResource(R.drawable.ic_favorite_filled)
         }
+    }
+
+    // Extraire le nom de la commune à partir du chemin du fichier
+    private fun getCommuneFromPath(path: String): String {
+        try {
+            val file = File(path)
+            val parentFolder = file.parentFile
+            
+            if (parentFolder != null) {
+                return parentFolder.name
+            }
+        } catch (e: Exception) {
+            Log.e("ImageAdapter", "Erreur lors de l'extraction de la commune", e)
+        }
+        
+        return ""
     }
 }
