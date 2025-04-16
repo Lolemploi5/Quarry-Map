@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
+    id 'kotlin-parcelize'
     id 'kotlin-kapt'
 }
 
@@ -36,6 +37,17 @@ android {
     buildFeatures {
         viewBinding true
         buildConfig true
+    }
+    
+    // Configuration pour éviter l'erreur de duplications de classes
+    configurations.all {
+        resolutionStrategy {
+            // Force une version uniforme des bibliothèques Kotlin standard
+            force "org.jetbrains.kotlin:kotlin-stdlib:1.9.10"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
+            force "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.10"
+        }
     }
     
     lint {
@@ -82,4 +94,19 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    
+    // Correction de l'avertissement dans MapFragment.kt
+    implementation "androidx.core:core-ktx:1.10.1"
+    implementation "androidx.appcompat:appcompat:1.6.1"
+    implementation "com.google.android.material:material:1.9.0"
+    
+    // Exclusion explicite des versions conflictuelles de kotlin-stdlib-jdk7 et kotlin-stdlib-jdk8
+    constraints {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10") {
+            because("kotlin-stdlib-jdk7 is now a part of kotlin-stdlib")
+        }
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10") {
+            because("kotlin-stdlib-jdk8 is now a part of kotlin-stdlib")
+        }
+    }
 }
