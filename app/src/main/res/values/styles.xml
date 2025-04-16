@@ -102,15 +102,14 @@
         <item name="android:windowExitAnimation">@anim/slide_down</item>
     </style>
 
-    <style name="DarkAlertDialog" parent="Theme.AppCompat.Dialog.Alert">
-        <item name="android:background">@android:color/transparent</item>
-        <item name="android:textColorPrimary">#EFEFEF</item>
-        <item name="android:textColorSecondary">#AAAAAA</item>
-        <item name="android:windowMinWidthMajor">75%</item>
-        <item name="android:windowMinWidthMinor">75%</item>
-        <item name="android:windowAnimationStyle">@style/DialogAnimation</item>
-        <item name="android:buttonBarButtonStyle">@style/DarkAlertDialog.Button</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
+    <style name="DarkAlertDialog" parent="ThemeOverlay.AppCompat.Dialog.Alert">
+        <item name="android:background">@color/colorPrimaryDark</item>
+        <item name="android:textColorPrimary">@android:color/white</item>
+        <item name="android:buttonBarButtonStyle">@style/DarkDialogButton</item>
+    </style>
+
+    <style name="DarkDialogButton" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
+        <item name="android:textColor">@color/colorAccent</item>
     </style>
 
     <style name="DarkAlertDialog.Button" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
@@ -152,6 +151,12 @@
         <item name="android:textColor">#757575</item>
         <item name="android:maxLines">1</item>
         <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="Theme.QuarryMap.NoActionBar" parent="Theme.QuarryMap">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
     </style>
 
 </resources>

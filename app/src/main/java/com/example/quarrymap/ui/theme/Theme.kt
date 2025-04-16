@@ -1,20 +1,32 @@
 package com.example.quarrymap.ui.theme
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import android.app.Activity
+import android.os.Build
+import androidx.appcompat.app.AppCompatDelegate
 
-private val DarkColorPalette = darkColorScheme(
-    primary = Color(0xFFBB86FC),
-    secondary = Color(0xFF03DAC5),
-    tertiary = Color(0xFF3700B3)
-)
+/**
+ * Classe utilitaire pour la gestion des thèmes de l'application.
+ * Cette version n'utilise pas Jetpack Compose.
+ */
+object Theme {
+    /**
+     * Applique le thème sombre à l'application.
+     */
+    fun applyDarkTheme() {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+    }
 
-@Composable
-fun QuarryMapTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = DarkColorPalette, // 🔥 Utilise uniquement la palette sombre
-        content = content
-    )
+    /**
+     * Applique le thème clair à l'application.
+     */
+    fun applyLightTheme() {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+    }
+
+    /**
+     * Suit les paramètres du système pour le thème.
+     */
+    fun applySystemTheme() {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+    }
 }

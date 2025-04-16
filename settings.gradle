@@ -1,0 +1,21 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://jitpack.io" }
+        // Nous n'avons plus besoin du dépôt Mapbox qui nécessite une authentification
+        // maven { url 'https://api.mapbox.com/downloads/v2/releases/maven' }
+    }
+}
+
+rootProject.name = "QuarryMap"
+include ':app'
