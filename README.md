@@ -1,8 +1,7 @@
 
 
 # 🗺️ Quarry Map
-
-[![Build](https://img.shields.io/github/actions/workflow/status/Lolemploi5/Quarry-Map/android.yml?branch=main)](https://github.com/Lolemploi5/Quarry-Map/actions)
+[![Android CI](https://github.com/Lolemploi5/Quarry-Map/actions/workflows/android.yml/badge.svg)](https://github.com/Lolemploi5/Quarry-Map/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Issues](https://img.shields.io/github/issues/Lolemploi5/Quarry-Map)](https://github.com/Lolemploi5/Quarry-Map/issues)
 [![Stars](https://img.shields.io/github/stars/Lolemploi5/Quarry-Map?style=social)](https://github.com/Lolemploi5/Quarry-Map)
