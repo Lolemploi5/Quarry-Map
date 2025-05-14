@@ -1,18 +1,35 @@
 package com.example.quarrymap
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import com.example.quarrymap.databinding.FragmentMapBinding
 import org.json.JSONObject
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
 
 private const val TAG = "MapFragment"
 
@@ -22,7 +39,16 @@ class MapFragment : Fragment() {
     private val binding get() = _binding!!
     
     private lateinit var mapWebView: WebView
+    private lateinit var coordinatesTextView: TextView
+    private lateinit var coordinatesContainer: LinearLayout
     private var isWebViewInitialized = false
+    
+    // Variables pour stocker les valeurs de latitude et longitude actuelles
+    private var currentLatitude: Double = 0.0
+    private var currentLongitude: Double = 0.0
+
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationCallback: LocationCallback
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,10 +61,67 @@ class MapFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
+
+        coordinatesTextView = binding.coordinatesText
+        coordinatesContainer = binding.coordinatesContainer
+
+        // Configurer le conteneur des coordonnées pour le clic
+        coordinatesContainer.setOnClickListener {
+            copyCoordinatesToClipboard()
+        }
+
+        // Ajouter une animation de pression sur le conteneur
+        coordinatesContainer.apply {
+            isClickable = true
+            isFocusable = true
+
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        v.alpha = 0.7f
+                        v.animate().scaleX(0.95f).scaleY(0.95f).setDuration(100).start()
+                    }
+                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                        v.alpha = 1.0f
+                        v.animate().scaleX(1f).scaleY(1f).setDuration(100).start()
+                    }
+                }
+                false
+            }
+        }
+
+        // Initialiser le client de localisation
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
+
+        // Configurer le callback de localisation
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                locationResult.lastLocation?.let { location ->
+                    updateMapWithCurrentLocation(location)
+                }
+            }
+        }
+
+        // Démarrer la localisation dès le lancement de l'application
+        requestCurrentLocation()
+
+        // Ajouter un bouton pour centrer sur la position actuelle
+        binding.currentLocationButton.setOnClickListener {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                location?.let {
+                    centerMapOnLocation(it)
+                }
+            }
+        }
+
         setupWebView()
     }
-    
+
+    private fun centerMapOnLocation(location: Location) {
+        val jsCode = "map.setView([${location.latitude}, ${location.longitude}], 15);"
+        mapWebView.evaluateJavascript(jsCode, null)
+    }
+
     private fun setupWebView() {
         mapWebView = binding.webView
         
@@ -52,6 +135,9 @@ class MapFragment : Fragment() {
             builtInZoomControls = true
             displayZoomControls = false
         }
+        
+        // Ajouter une interface JavaScript pour communiquer avec la WebView
+        mapWebView.addJavascriptInterface(WebAppInterface(), "Android")
         
         // Configurer le WebViewClient pour intercepter les chargements de pages
         mapWebView.webViewClient = object : WebViewClient() {
@@ -86,10 +172,58 @@ class MapFragment : Fragment() {
                     <style>
                         body { margin: 0; padding: 0; }
                         #map { position: absolute; top: 0; bottom: 0; width: 100%; height: 100%; }
+                        .center-marker {
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            width: 20px;
+                            height: 20px;
+                            margin-left: -10px;
+                            margin-top: -10px;
+                            z-index: 1000;
+                            pointer-events: none;
+                        }
+                        .center-marker:before, .center-marker:after {
+                            content: "";
+                            position: absolute;
+                            background-color: rgba(255, 0, 0, 0.7);
+                        }
+                        .center-marker:before {
+                            left: 9px;
+                            top: 0;
+                            width: 2px;
+                            height: 20px;
+                        }
+                        .center-marker:after {
+                            top: 9px;
+                            left: 0;
+                            width: 20px;
+                            height: 2px;
+                        }
+                        .marker-pulse {
+                            border: 3px solid rgba(255, 0, 0, 0.5);
+                            background: rgba(255, 0, 0, 0.2);
+                            border-radius: 50%;
+                            height: 14px;
+                            width: 14px;
+                            position: absolute;
+                            left: 0;
+                            top: 0;
+                            animation: pulsate 1.5s ease-out;
+                            animation-iteration-count: infinite;
+                        }
+                        @keyframes pulsate {
+                            0% { transform: scale(0.1); opacity: 0; }
+                            50% { opacity: 1; }
+                            100% { transform: scale(1.2); opacity: 0; }
+                        }
                     </style>
                 </head>
                 <body>
                     <div id="map"></div>
+                    <div class="center-marker">
+                        <div class="marker-pulse"></div>
+                    </div>
                     <script>
                         // Initialiser la carte
                         var map = L.map('map').setView([46.603354, 1.888334], 6); // Vue centrée sur la France
@@ -108,6 +242,20 @@ class MapFragment : Fragment() {
                                     .bindPopup(marker.title);
                             });
                         }
+                        
+                        // Fonction pour obtenir les coordonnées du centre de la carte
+                        function updateCenterCoordinates() {
+                            var center = map.getCenter();
+                            Android.onCenterCoordinatesChanged(center.lat, center.lng);
+                        }
+                        
+                        // Mettre à jour les coordonnées au démarrage et lors du déplacement
+                        map.on('load', updateCenterCoordinates);
+                        map.on('move', updateCenterCoordinates);
+                        map.on('moveend', updateCenterCoordinates);
+                        
+                        // Mettre à jour après un court délai pour s'assurer que la carte est entièrement chargée
+                        setTimeout(updateCenterCoordinates, 500);
                     </script>
                 </body>
                 </html>
@@ -119,6 +267,48 @@ class MapFragment : Fragment() {
             Log.e(TAG, "Erreur lors du chargement de la carte", e)
             Toast.makeText(context, "Erreur lors du chargement de la carte: ${e.message}", Toast.LENGTH_SHORT).show()
         }
+    }
+    
+    // Interface JavaScript pour communiquer avec la WebView
+    inner class WebAppInterface {
+        @JavascriptInterface
+        fun onCenterCoordinatesChanged(latitude: Double, longitude: Double) {
+            activity?.runOnUiThread {
+                // Stocker les valeurs actuelles
+                currentLatitude = latitude
+                currentLongitude = longitude
+                
+                // Afficher les coordonnées formatées pour l'utilisateur
+                val formattedCoordinates = String.format("%.6f, %.6f", latitude, longitude)
+                coordinatesTextView.text = formattedCoordinates
+                coordinatesContainer.visibility = View.VISIBLE
+            }
+        }
+    }
+    
+    // Fonction pour copier les coordonnées dans le presse-papier au format Google Maps
+    private fun copyCoordinatesToClipboard() {
+        // Format Google Maps: "latitude,longitude" (sans espace)
+        val googleMapsFormat = "$currentLatitude,$currentLongitude"
+        
+        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Coordonnées GPS pour Google Maps", googleMapsFormat)
+        clipboard.setPrimaryClip(clip)
+        
+        // Afficher un message de confirmation
+        Toast.makeText(requireContext(), "Coordonnées copiées pour Google Maps", Toast.LENGTH_SHORT).show()
+        
+        // Animation de feedback
+        coordinatesContainer.animate()
+            .alpha(0.5f)
+            .setDuration(100)
+            .withEndAction {
+                coordinatesContainer.animate()
+                    .alpha(1.0f)
+                    .setDuration(100)
+                    .start()
+            }
+            .start()
     }
     
     // Ajouter des marqueurs à la carte (à appeler depuis l'activité principale)
@@ -153,6 +343,79 @@ class MapFragment : Fragment() {
         val title: String
     )
     
+    @SuppressLint("MissingPermission")
+    private fun requestCurrentLocation() {
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Demander les permissions si elles ne sont pas accordées
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                LOCATION_PERMISSION_REQUEST_CODE
+            )
+            return
+        }
+
+        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+            location?.let {
+                updateMapWithCurrentLocation(it)
+            } ?: run {
+                // Si aucune localisation récente n'est disponible, demander des mises à jour
+                val locationRequest = LocationRequest.create().apply {
+                    priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+                    interval = 10000
+                    fastestInterval = 5000
+                    numUpdates = 1
+                }
+                fusedLocationClient.requestLocationUpdates(
+                    locationRequest,
+                    locationCallback,
+                    Looper.getMainLooper()
+                )
+            }
+        }
+    }
+
+    private fun updateMapWithCurrentLocation(location: Location) {
+        Log.d("MapFragment", "Updating map with location: ${location.latitude}, ${location.longitude}")
+        val jsCode = """
+            setTimeout(function() {
+                if (typeof userCircle !== 'undefined') {
+                    map.removeLayer(userCircle);
+                }
+                console.log('Adding userCircle at:', ${location.latitude}, ${location.longitude});
+                userCircle = L.circle([${location.latitude}, ${location.longitude}], {
+                    color: '#007bff',
+                    fillColor: '#007bff',
+                    fillOpacity: 0.5,
+                    radius: 10
+                }).addTo(map);
+            }, 500);
+        """
+        mapWebView.evaluateJavascript(jsCode, null)
+    }
+
+    // Gérer les permissions
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            requestCurrentLocation()
+        }
+    }
+
+    companion object {
+        private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

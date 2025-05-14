@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Contour circulaire -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:pathData="M12,2
+                          C6.48,2 2,6.48 2,12
+                          s4.48,10 10,10
+                          10,-4.48 10,-10
+                          S17.52,2 12,2z"/>
+
+    <!-- Aiguille de la boussole -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M16.34,17.66
+                          l-1.37,-5.50
+                          l-5.50,-1.37
+                          l1.37,5.50
+                          l5.50,1.37z"/>
+</vector>
