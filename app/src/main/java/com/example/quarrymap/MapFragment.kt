@@ -21,6 +21,7 @@ import android.webkit.WebViewClient
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import com.example.quarrymap.databinding.FragmentMapBinding
@@ -44,8 +45,11 @@ class MapFragment : Fragment() {
     private var isWebViewInitialized = false
     
     // Variables pour stocker les valeurs de latitude et longitude actuelles
-    private var currentLatitude: Double = 0.0
-    private var currentLongitude: Double = 0.0
+    var currentLatitude: Double = 0.0
+        private set
+
+    var currentLongitude: Double = 0.0
+        private set
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
@@ -103,7 +107,7 @@ class MapFragment : Fragment() {
         }
 
         // Démarrer la localisation dès le lancement de l'application
-        requestCurrentLocation()
+        checkAndRequestLocationPermission()
 
         // Ajouter un bouton pour centrer sur la position actuelle
         binding.currentLocationButton.setOnClickListener {
@@ -345,40 +349,18 @@ class MapFragment : Fragment() {
     
     @SuppressLint("MissingPermission")
     private fun requestCurrentLocation() {
-        if (ActivityCompat.checkSelfPermission(
-                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(
-                requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // Demander les permissions si elles ne sont pas accordées
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                LOCATION_PERMISSION_REQUEST_CODE
-            )
-            return
-        }
+        val locationRequest = com.google.android.gms.location.LocationRequest.Builder(
+            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, 10000
+        ).setWaitForAccurateLocation(false)
+         .setMinUpdateIntervalMillis(5000)
+         .setMaxUpdates(1)
+         .build()
 
-        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-            location?.let {
-                updateMapWithCurrentLocation(it)
-            } ?: run {
-                // Si aucune localisation récente n'est disponible, demander des mises à jour
-                val locationRequest = LocationRequest.create().apply {
-                    priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-                    interval = 10000
-                    fastestInterval = 5000
-                    numUpdates = 1
-                }
-                fusedLocationClient.requestLocationUpdates(
-                    locationRequest,
-                    locationCallback,
-                    Looper.getMainLooper()
-                )
-            }
-        }
+        fusedLocationClient.requestLocationUpdates(
+            locationRequest,
+            locationCallback,
+            Looper.getMainLooper()
+        )
     }
 
     private fun updateMapWithCurrentLocation(location: Location) {
@@ -400,15 +382,25 @@ class MapFragment : Fragment() {
         mapWebView.evaluateJavascript(jsCode, null)
     }
 
-    // Gérer les permissions
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+    // Remplacement de onRequestPermissionsResult par ActivityResultContracts
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                requestCurrentLocation()
+            } else {
+                Toast.makeText(requireContext(), "Permission refusée", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+    private fun checkAndRequestLocationPermission() {
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
             requestCurrentLocation()
+        } else {
+            requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
 
@@ -419,5 +411,14 @@ class MapFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    // Rendre la méthode executeJavaScript accessible
+    fun executeJavaScript(jsCode: String) {
+        if (::mapWebView.isInitialized) {
+            mapWebView.post {
+                mapWebView.evaluateJavascript(jsCode, null)
+            }
+        }
     }
 }
