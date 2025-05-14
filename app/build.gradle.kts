@@ -72,6 +72,9 @@ dependencies {
     // Support SVG pour Glide
     implementation("com.caverock:androidsvg-aar:1.4")
 
+    // Google Play services location
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
     // Test
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

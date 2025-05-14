@@ -62,6 +62,7 @@ dependencies {
     
     // Glide pour le chargement d'images
     implementation 'com.github.bumptech.glide:glide:4.14.2'
+    implementation libs.play.services.location
     kapt 'com.github.bumptech.glide:compiler:4.14.2'
     
     // Support pour les SVG

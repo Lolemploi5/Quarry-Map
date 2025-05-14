@@ -1,9 +1,14 @@
 package com.example.quarrymap
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -16,9 +21,15 @@ import android.webkit.WebViewClient
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import com.example.quarrymap.databinding.FragmentMapBinding
 import org.json.JSONObject
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
 
 private const val TAG = "MapFragment"
 
@@ -36,6 +47,9 @@ class MapFragment : Fragment() {
     private var currentLatitude: Double = 0.0
     private var currentLongitude: Double = 0.0
 
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationCallback: LocationCallback
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -47,20 +61,20 @@ class MapFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
+
         coordinatesTextView = binding.coordinatesText
         coordinatesContainer = binding.coordinatesContainer
-        
+
         // Configurer le conteneur des coordonnées pour le clic
         coordinatesContainer.setOnClickListener {
             copyCoordinatesToClipboard()
         }
-        
+
         // Ajouter une animation de pression sur le conteneur
         coordinatesContainer.apply {
             isClickable = true
             isFocusable = true
-            
+
             setOnTouchListener { v, event ->
                 when (event.action) {
                     android.view.MotionEvent.ACTION_DOWN -> {
@@ -75,10 +89,39 @@ class MapFragment : Fragment() {
                 false
             }
         }
-        
+
+        // Initialiser le client de localisation
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
+
+        // Configurer le callback de localisation
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                locationResult.lastLocation?.let { location ->
+                    updateMapWithCurrentLocation(location)
+                }
+            }
+        }
+
+        // Démarrer la localisation dès le lancement de l'application
+        requestCurrentLocation()
+
+        // Ajouter un bouton pour centrer sur la position actuelle
+        binding.currentLocationButton.setOnClickListener {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                location?.let {
+                    centerMapOnLocation(it)
+                }
+            }
+        }
+
         setupWebView()
     }
-    
+
+    private fun centerMapOnLocation(location: Location) {
+        val jsCode = "map.setView([${location.latitude}, ${location.longitude}], 15);"
+        mapWebView.evaluateJavascript(jsCode, null)
+    }
+
     private fun setupWebView() {
         mapWebView = binding.webView
         
@@ -300,6 +343,79 @@ class MapFragment : Fragment() {
         val title: String
     )
     
+    @SuppressLint("MissingPermission")
+    private fun requestCurrentLocation() {
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Demander les permissions si elles ne sont pas accordées
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                LOCATION_PERMISSION_REQUEST_CODE
+            )
+            return
+        }
+
+        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+            location?.let {
+                updateMapWithCurrentLocation(it)
+            } ?: run {
+                // Si aucune localisation récente n'est disponible, demander des mises à jour
+                val locationRequest = LocationRequest.create().apply {
+                    priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+                    interval = 10000
+                    fastestInterval = 5000
+                    numUpdates = 1
+                }
+                fusedLocationClient.requestLocationUpdates(
+                    locationRequest,
+                    locationCallback,
+                    Looper.getMainLooper()
+                )
+            }
+        }
+    }
+
+    private fun updateMapWithCurrentLocation(location: Location) {
+        Log.d("MapFragment", "Updating map with location: ${location.latitude}, ${location.longitude}")
+        val jsCode = """
+            setTimeout(function() {
+                if (typeof userCircle !== 'undefined') {
+                    map.removeLayer(userCircle);
+                }
+                console.log('Adding userCircle at:', ${location.latitude}, ${location.longitude});
+                userCircle = L.circle([${location.latitude}, ${location.longitude}], {
+                    color: '#007bff',
+                    fillColor: '#007bff',
+                    fillOpacity: 0.5,
+                    radius: 10
+                }).addTo(map);
+            }, 500);
+        """
+        mapWebView.evaluateJavascript(jsCode, null)
+    }
+
+    // Gérer les permissions
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            requestCurrentLocation()
+        }
+    }
+
+    companion object {
+        private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

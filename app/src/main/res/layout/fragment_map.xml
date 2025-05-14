@@ -41,4 +41,14 @@
             android:src="@drawable/ic_content_copy" />
     </LinearLayout>
 
+    <ImageButton
+        android:id="@+id/currentLocationButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:background="@drawable/ic_compass"
+        android:contentDescription="@string/locate_me"
+        android:elevation="4dp" />
+
 </FrameLayout>

@@ -2,4 +2,5 @@
     <string name="app_name">QuarryMap</string>
     <string name="description_image_viewer">Affichage plein écran de la planche</string>
     <string name="offline_mode">Mode Souterrains</string>
+    <string name="locate_me">Localiser</string>
 </resources>
