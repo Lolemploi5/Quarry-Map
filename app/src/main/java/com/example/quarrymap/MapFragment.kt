@@ -25,12 +25,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import com.example.quarrymap.databinding.FragmentMapBinding
-import org.json.JSONObject
+import org.json.JSONObject as JsonObject
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import java.io.File
+import java.io.FileReader
+import java.io.FileWriter
+import org.json.JSONArray
 
 private const val TAG = "MapFragment"
 
@@ -53,6 +57,8 @@ class MapFragment : Fragment() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
+
+    private val pendingMarkers = mutableListOf<MarkerData>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -119,6 +125,7 @@ class MapFragment : Fragment() {
         }
 
         setupWebView()
+        loadSavedPoints()
     }
 
     private fun centerMapOnLocation(location: Location) {
@@ -154,6 +161,19 @@ class MapFragment : Fragment() {
                 super.onPageFinished(view, url)
                 Log.d(TAG, "Page chargée: $url")
                 isWebViewInitialized = true
+
+                // Vérifier si la fonction addMarkers est définie dans le contexte JavaScript
+                val jsCheckCode = "if (typeof addMarkers === 'undefined') { console.error('addMarkers is not defined'); } else { console.log('addMarkers is defined'); }"
+                mapWebView.evaluateJavascript(jsCheckCode, null)
+
+                // Ajouter les marqueurs en attente immédiatement après l'initialisation
+                if (pendingMarkers.isNotEmpty()) {
+                    Log.d(TAG, "Ajout des marqueurs en attente: ${pendingMarkers.size} marqueurs")
+                    addMarkers(pendingMarkers)
+                    pendingMarkers.clear()
+                } else {
+                    Log.d(TAG, "Aucun marqueur en attente à ajouter")
+                }
             }
         }
         
@@ -318,16 +338,27 @@ class MapFragment : Fragment() {
     // Ajouter des marqueurs à la carte (à appeler depuis l'activité principale)
     fun addMarkers(markers: List<MarkerData>) {
         if (!isWebViewInitialized) {
-            Log.d(TAG, "WebView non initialisée, impossible d'ajouter des marqueurs")
+            val newMarkers = markers.filterNot { it in pendingMarkers }
+            Log.d(TAG, "WebView non initialisée, mise en file d'attente de ${newMarkers.size} nouveaux marqueurs")
+            pendingMarkers.addAll(newMarkers)
             return
         }
-        
+
         val markersJson = markers.map { marker ->
             """{"lat":${marker.latitude},"lng":${marker.longitude},"title":"${marker.title}"}"""
         }.joinToString(",", "[", "]")
-        
-        val jsCode = "addMarkers('$markersJson');"
-        mapWebView.evaluateJavascript(jsCode, null)
+
+        val jsCode = """
+            if (typeof addMarkers !== 'undefined') {
+                addMarkers('$markersJson');
+            } else {
+                console.error('addMarkers is not defined');
+            }
+        """.trimIndent()
+
+        mapWebView.postDelayed({
+            mapWebView.evaluateJavascript(jsCode, null)
+        }, 500)
     }
     
     // Vérifier si la WebView peut revenir en arrière
@@ -420,5 +451,64 @@ class MapFragment : Fragment() {
                 mapWebView.evaluateJavascript(jsCode, null)
             }
         }
+    }
+
+    // Ajouter une méthode pour charger les points sauvegardés et les afficher
+    fun loadSavedPoints() {
+        val savedPoints = PointsStorage.loadPoints(requireContext())
+        addMarkers(savedPoints)
+    }
+
+    // Modifier la méthode d'ajout de marqueurs pour sauvegarder les points
+    fun addMarker(latitude: Double, longitude: Double, title: String) {
+        val newMarker = MarkerData(latitude, longitude, title)
+        val currentMarkers = PointsStorage.loadPoints(requireContext()).toMutableList()
+        currentMarkers.add(newMarker)
+        PointsStorage.savePoints(requireContext(), currentMarkers)
+        addMarkers(listOf(newMarker))
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadSavedPoints()
+    }
+}
+
+// Classe utilitaire pour gérer les points sauvegardés
+object PointsStorage {
+    private const val FILE_NAME = "points.json"
+
+    fun savePoints(context: Context, points: List<MapFragment.MarkerData>) {
+        val file = File(context.filesDir, FILE_NAME)
+        val jsonArray = JSONArray()
+        points.forEach { point ->
+            val jsonObject = JsonObject()
+            jsonObject.put("latitude", point.latitude)
+            jsonObject.put("longitude", point.longitude)
+            jsonObject.put("title", point.title)
+            jsonArray.put(jsonObject)
+        }
+        FileWriter(file).use { it.write(jsonArray.toString()) }
+        Log.d("PointsStorage", "Points sauvegardés: ${jsonArray.length()} points dans le fichier ${file.absolutePath}")
+    }
+
+    fun loadPoints(context: Context): List<MapFragment.MarkerData> {
+        val file = File(context.filesDir, FILE_NAME)
+        if (!file.exists()) {
+            Log.d("PointsStorage", "Aucun fichier de points trouvé.")
+            return emptyList()
+        }
+
+        val jsonArray = JSONArray(FileReader(file).readText())
+        val points = mutableListOf<MapFragment.MarkerData>()
+        for (i in 0 until jsonArray.length()) {
+            val jsonObject = jsonArray.getJSONObject(i)
+            val latitude = jsonObject.getDouble("latitude")
+            val longitude = jsonObject.getDouble("longitude")
+            val title = jsonObject.getString("title")
+            points.add(MapFragment.MarkerData(latitude, longitude, title))
+        }
+        Log.d("PointsStorage", "Points chargés: ${points.size} points")
+        return points
     }
 }

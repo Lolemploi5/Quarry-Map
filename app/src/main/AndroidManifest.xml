@@ -30,6 +30,7 @@
         android:theme="@style/Theme.QuarryMap"
         android:largeHeap="true"
         android:requestLegacyExternalStorage="true"
+        android:enableOnBackInvokedCallback="true"
         tools:targetApi="31">
 
         <activity

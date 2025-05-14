@@ -4,6 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -74,6 +77,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mapFragment: MapFragment
     private lateinit var communesFragment: CommunesFragment
     private lateinit var favoritesFragment: FavoritesFragment
+
+    private lateinit var locationManager: LocationManager
+    private val locationListener = object : LocationListener {
+        override fun onLocationChanged(location: Location) {
+            Log.d("MainActivity", "Location updated: ${location.latitude}, ${location.longitude}")
+            // Mettre à jour la carte ou d'autres éléments avec la nouvelle localisation
+        }
+
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+        override fun onProviderEnabled(provider: String) {}
+        override fun onProviderDisabled(provider: String) {}
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -158,8 +173,6 @@ class MainActivity : AppCompatActivity() {
                             dialog.setPositiveButton("Valider") { _, _ ->
                                 val pointName = input.text.toString()
                                 if (pointName.isNotEmpty()) {
-                                    // Récupérer les coordonnées actuelles de la croix
-                                    // Renommer la variable locale pour éviter le masquage
                                     val localMapFragment = supportFragmentManager.findFragmentById(R.id.container) as? MapFragment
                                     val latitude = localMapFragment?.currentLatitude ?: 0.0
                                     val longitude = localMapFragment?.currentLongitude ?: 0.0
@@ -171,6 +184,11 @@ class MainActivity : AppCompatActivity() {
                                             .bindPopup('$pointName').openPopup();
                                         """
                                     )
+
+                                    // Sauvegarder le point
+                                    val newPoint = MapFragment.MarkerData(latitude, longitude, pointName)
+                                    PointsStorage.savePoints(this, listOf(newPoint))
+
                                     Toast.makeText(this, "Point ajouté : $pointName", Toast.LENGTH_SHORT).show()
                                 } else {
                                     Toast.makeText(this, "Le nom du point ne peut pas être vide", Toast.LENGTH_SHORT).show()
@@ -223,8 +241,6 @@ class MainActivity : AppCompatActivity() {
                         dialog.setPositiveButton("Valider") { _, _ ->
                             val pointName = input.text.toString()
                             if (pointName.isNotEmpty()) {
-                                // Récupérer les coordonnées actuelles de la croix
-                                // Renommer la variable locale pour éviter le masquage
                                 val localMapFragment = supportFragmentManager.findFragmentById(R.id.container) as? MapFragment
                                 val latitude = localMapFragment?.currentLatitude ?: 0.0
                                 val longitude = localMapFragment?.currentLongitude ?: 0.0
@@ -236,6 +252,11 @@ class MainActivity : AppCompatActivity() {
                                         .bindPopup('$pointName').openPopup();
                                     """
                                 )
+
+                                // Sauvegarder le point
+                                val newPoint = MapFragment.MarkerData(latitude, longitude, pointName)
+                                PointsStorage.savePoints(this, listOf(newPoint))
+
                                 Toast.makeText(this, "Point ajouté : $pointName", Toast.LENGTH_SHORT).show()
                             } else {
                                 Toast.makeText(this, "Le nom du point ne peut pas être vide", Toast.LENGTH_SHORT).show()
@@ -254,6 +275,19 @@ class MainActivity : AppCompatActivity() {
             }
             popupMenu.show()
         }
+
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        try {
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                5000L, // Intervalle de mise à jour en millisecondes
+                10f,   // Distance minimale en mètres
+                locationListener
+            )
+        } catch (e: SecurityException) {
+            Log.e("MainActivity", "Permission de localisation non accordée", e)
+        }
     }
 
     override fun onResume() {
@@ -270,6 +304,7 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
             unregisterReceiver(networkReceiver)
         }
+        locationManager.removeUpdates(locationListener)
     }
 
     private fun checkNetworkStatus() {
