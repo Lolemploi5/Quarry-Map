@@ -143,8 +143,8 @@ class MapFragment : Fragment() {
             cacheMode = WebSettings.LOAD_DEFAULT
             loadsImagesAutomatically = true
             setSupportZoom(true)
-            builtInZoomControls = true
-            displayZoomControls = false
+            setBuiltInZoomControls(true)
+            setDisplayZoomControls(false)
         }
         
         // Ajouter une interface JavaScript pour communiquer avec la WebView
@@ -479,9 +479,11 @@ object PointsStorage {
     private const val FILE_NAME = "points.json"
 
     fun savePoints(context: Context, points: List<MapFragment.MarkerData>) {
+        val existingPoints = loadPoints(context).toMutableList()
+        existingPoints.addAll(points)
         val file = File(context.filesDir, FILE_NAME)
         val jsonArray = JSONArray()
-        points.forEach { point ->
+        existingPoints.forEach { point ->
             val jsonObject = JsonObject()
             jsonObject.put("latitude", point.latitude)
             jsonObject.put("longitude", point.longitude)
