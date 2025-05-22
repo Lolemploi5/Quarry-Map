@@ -104,21 +104,16 @@ class ImageAdapter(
         // Mettre à jour l'état du bouton favori
         updateFavoriteButton(holder.favoriteButton, imagePath)
 
-        if (!file.exists()) {
-            Log.e("ImageAdapter", "ERREUR: Le fichier n'existe pas: $imagePath")
+        if (!file.exists() || file.length() <= 0) {
+            Log.e("ImageAdapter", "ERREUR: Le fichier n'existe pas ou est vide: $imagePath")
             holder.planchePreview.setImageResource(R.drawable.ic_broken_image)
+            holder.itemView.setOnClickListener(null)
             return
         }
 
         val fileSize = file.length()
         Log.d("ImageAdapter", "Fichier: ${file.name}, Taille: $fileSize bytes, Chemin: $imagePath")
         
-        if (fileSize <= 0) {
-            Log.e("ImageAdapter", "ERREUR: Fichier vide ou inaccessible: ${file.name}")
-            holder.planchePreview.setImageResource(R.drawable.ic_broken_image)
-            return
-        }
-
         try {
             val extension = file.extension.lowercase()
             Log.d("ImageAdapter", "Extension du fichier: $extension")
