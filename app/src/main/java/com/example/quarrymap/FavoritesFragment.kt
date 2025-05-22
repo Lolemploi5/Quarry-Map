@@ -58,11 +58,15 @@ class FavoritesFragment : Fragment(), ImageAdapter.OnFavoriteChangeListener {
     private fun setupRecyclerView() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         adapter = ImageAdapter(emptyList()) { imagePath ->
-            // Ouvrir la visionneuse d'image
-            val intent = Intent(requireContext(), ImageViewerActivity::class.java).apply {
-                putExtra("IMAGE_PATH", imagePath)
+            if (imagePath.isNotEmpty() && File(imagePath).exists()) {
+                val intent = Intent(requireContext(), ImageViewerActivity::class.java).apply {
+                    putExtra("IMAGE_PATH", imagePath)
+                }
+                startActivity(intent)
+            } else {
+                Toast.makeText(requireContext(), "Image introuvable ou supprimée", Toast.LENGTH_SHORT).show()
+                loadFavorites() // Nettoie la liste si besoin
             }
-            startActivity(intent)
         }
         
         // Indiquer à l'adaptateur qu'il s'agit de la vue des favoris

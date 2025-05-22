@@ -4,6 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -18,6 +21,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.Fragment
 import com.example.quarrymap.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
@@ -73,6 +77,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mapFragment: MapFragment
     private lateinit var communesFragment: CommunesFragment
     private lateinit var favoritesFragment: FavoritesFragment
+
+    private lateinit var locationManager: LocationManager
+    private val locationListener = object : LocationListener {
+        override fun onLocationChanged(location: Location) {
+            Log.d("MainActivity", "Location updated: ${location.latitude}, ${location.longitude}")
+            // Mettre à jour la carte ou d'autres éléments avec la nouvelle localisation
+        }
+
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+        override fun onProviderEnabled(provider: String) {}
+        override fun onProviderDisabled(provider: String) {}
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,6 +146,154 @@ class MainActivity : AppCompatActivity() {
         } else {
             checkNetworkStatus() // Vérifier l'état initial
         }
+
+        // Initialisation des fragments
+        val mapFragment = MapFragment()
+        val communesFragment = CommunesFragment()
+        val favoritesFragment = FavoritesFragment()
+
+        // Configuration de la navigation
+        binding.tabMap.setOnClickListener {
+            loadFragment(mapFragment)
+            updateNavBarState(true, false, false)
+            binding.addButton.visibility = View.VISIBLE // Afficher le menu déroulant sur la page carte
+            binding.addButton.setOnClickListener {
+                val popupMenu = PopupMenu(this, binding.addButton)
+                popupMenu.menuInflater.inflate(R.menu.map_add_menu, popupMenu.menu)
+                popupMenu.setOnMenuItemClickListener { menuItem ->
+                    when (menuItem.itemId) {
+                        R.id.add_point -> {
+                            // Afficher un dialogue pour demander le nom du point
+                            val dialog = android.app.AlertDialog.Builder(this)
+                            val input = android.widget.EditText(this)
+                            input.hint = "Entrez le nom du point"
+                            dialog.setTitle("Ajouter un point")
+                            dialog.setView(input)
+
+                            dialog.setPositiveButton("Valider") { _, _ ->
+                                val pointName = input.text.toString()
+                                if (pointName.isNotEmpty()) {
+                                    val localMapFragment = supportFragmentManager.findFragmentById(R.id.container) as? MapFragment
+                                    val latitude = localMapFragment?.currentLatitude ?: 0.0
+                                    val longitude = localMapFragment?.currentLongitude ?: 0.0
+
+                                    // Ajouter un marqueur sur la carte
+                                    localMapFragment?.executeJavaScript(
+                                        """
+                                        L.marker([$latitude, $longitude]).addTo(map)
+                                            .bindPopup('$pointName').openPopup();
+                                        """
+                                    )
+
+                                    // Sauvegarder le point
+                                    val newPoint = MapFragment.MarkerData(latitude, longitude, pointName)
+                                    val allPoints = PointsStorage.loadPoints(this).toMutableList()
+                                    allPoints.add(newPoint)
+                                    PointsStorage.savePoints(this, allPoints)
+                                    localMapFragment?.loadSavedPoints()
+
+                                    Toast.makeText(this, "Point ajouté : $pointName", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(this, "Le nom du point ne peut pas être vide", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+
+                            dialog.setNegativeButton("Annuler") { dialogInterface, _ ->
+                                dialogInterface.dismiss()
+                            }
+
+                            dialog.show()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                popupMenu.show()
+            }
+        }
+
+        binding.tabCommunes.setOnClickListener {
+            loadFragment(communesFragment)
+            updateNavBarState(false, true, false)
+            binding.addButton.visibility = View.VISIBLE // Afficher le bouton d'importation sur la page commune
+            binding.addButton.setOnClickListener {
+                showUploadOptions() // Logique pour l'importation
+            }
+        }
+
+        binding.tabFavorites.setOnClickListener {
+            loadFragment(favoritesFragment)
+            updateNavBarState(false, false, true)
+            binding.addButton.visibility = View.GONE // Cacher le bouton sur les autres pages
+        }
+
+        // Configuration du menu déroulant pour le bouton d'ajout
+        binding.addButton.setOnClickListener {
+            val popupMenu = PopupMenu(this, binding.addButton)
+            popupMenu.menuInflater.inflate(R.menu.map_add_menu, popupMenu.menu)
+            popupMenu.setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    R.id.add_point -> {
+                        // Afficher un dialogue pour demander le nom du point
+                        val dialog = android.app.AlertDialog.Builder(this)
+                        val input = android.widget.EditText(this)
+                        input.hint = "Entrez le nom du point"
+                        dialog.setTitle("Ajouter un point")
+                        dialog.setView(input)
+
+                        dialog.setPositiveButton("Valider") { _, _ ->
+                            val pointName = input.text.toString()
+                            if (pointName.isNotEmpty()) {
+                                val localMapFragment = supportFragmentManager.findFragmentById(R.id.container) as? MapFragment
+                                val latitude = localMapFragment?.currentLatitude ?: 0.0
+                                val longitude = localMapFragment?.currentLongitude ?: 0.0
+
+                                // Ajouter un marqueur sur la carte
+                                localMapFragment?.executeJavaScript(
+                                    """
+                                    L.marker([$latitude, $longitude]).addTo(map)
+                                        .bindPopup('$pointName').openPopup();
+                                    """
+                                )
+
+                                // Sauvegarder le point
+                                val newPoint = MapFragment.MarkerData(latitude, longitude, pointName)
+                                val allPoints = PointsStorage.loadPoints(this).toMutableList()
+                                allPoints.add(newPoint)
+                                PointsStorage.savePoints(this, allPoints)
+                                localMapFragment?.loadSavedPoints()
+
+                                Toast.makeText(this, "Point ajouté : $pointName", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this, "Le nom du point ne peut pas être vide", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+
+                        dialog.setNegativeButton("Annuler") { dialogInterface, _ ->
+                            dialogInterface.dismiss()
+                        }
+
+                        dialog.show()
+                        true
+                    }
+                    else -> false
+                }
+            }
+            popupMenu.show()
+        }
+
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        try {
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                5000L, // Intervalle de mise à jour en millisecondes
+                10f,   // Distance minimale en mètres
+                locationListener
+            )
+        } catch (e: SecurityException) {
+            Log.e("MainActivity", "Permission de localisation non accordée", e)
+        }
     }
 
     override fun onResume() {
@@ -146,6 +310,7 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
             unregisterReceiver(networkReceiver)
         }
+        locationManager.removeUpdates(locationListener)
     }
 
     private fun checkNetworkStatus() {

@@ -48,6 +48,9 @@ class ImageViewerActivity : AppCompatActivity() {
         // Récupérer le chemin de l'image depuis l'intent
         imagePath = intent.getStringExtra(EXTRA_IMAGE_PATH)
         if (imagePath == null) {
+            imagePath = intent.getStringExtra("IMAGE_PATH")
+        }
+        if (imagePath.isNullOrEmpty()) {
             Toast.makeText(this, "Erreur: Aucune image spécifiée", Toast.LENGTH_SHORT).show()
             finish()
             return
