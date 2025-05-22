@@ -187,7 +187,9 @@ class MainActivity : AppCompatActivity() {
 
                                     // Sauvegarder le point
                                     val newPoint = MapFragment.MarkerData(latitude, longitude, pointName)
-                                    PointsStorage.savePoints(this, listOf(newPoint))
+                                    val allPoints = PointsStorage.loadPoints(this).toMutableList()
+                                    allPoints.add(newPoint)
+                                    PointsStorage.savePoints(this, allPoints)
 
                                     Toast.makeText(this, "Point ajouté : $pointName", Toast.LENGTH_SHORT).show()
                                 } else {
@@ -255,7 +257,9 @@ class MainActivity : AppCompatActivity() {
 
                                 // Sauvegarder le point
                                 val newPoint = MapFragment.MarkerData(latitude, longitude, pointName)
-                                PointsStorage.savePoints(this, listOf(newPoint))
+                                val allPoints = PointsStorage.loadPoints(this).toMutableList()
+                                allPoints.add(newPoint)
+                                PointsStorage.savePoints(this, allPoints)
 
                                 Toast.makeText(this, "Point ajouté : $pointName", Toast.LENGTH_SHORT).show()
                             } else {

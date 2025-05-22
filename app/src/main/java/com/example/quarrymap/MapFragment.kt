@@ -258,12 +258,24 @@ class MapFragment : Fragment() {
                         }).addTo(map);
                         
                         // Fonction pour ajouter des marqueurs (à appeler depuis Android)
+                        var leafletMarkers = [];
                         function addMarkers(markersJson) {
+                            // Supprimer les anciens marqueurs
+                            if (leafletMarkers && leafletMarkers.length > 0) {
+                                leafletMarkers.forEach(function(m) { map.removeLayer(m); });
+                                leafletMarkers = [];
+                            }
                             const markers = JSON.parse(markersJson);
-                            markers.forEach(marker => {
-                                L.marker([marker.lat, marker.lng])
+                            markers.forEach((marker, idx) => {
+                                var leafletMarker = L.marker([marker.lat, marker.lng])
                                     .addTo(map)
                                     .bindPopup(marker.title);
+                                leafletMarker.on('click', function() {
+                                    if (Android && Android.onMarkerClicked) {
+                                        Android.onMarkerClicked(marker.lat + ',' + marker.lng);
+                                    }
+                                });
+                                leafletMarkers.push(leafletMarker);
                             });
                         }
                         
@@ -308,6 +320,74 @@ class MapFragment : Fragment() {
                 coordinatesContainer.visibility = View.VISIBLE
             }
         }
+
+        @JavascriptInterface
+        fun onMarkerClicked(coordId: String) {
+            activity?.runOnUiThread {
+                // coordId format: "lat,lng"
+                val parts = coordId.split(",")
+                if (parts.size == 2) {
+                    val lat = parts[0].toDoubleOrNull()
+                    val lng = parts[1].toDoubleOrNull()
+                    if (lat != null && lng != null) {
+                        val points = PointsStorage.loadPoints(requireContext())
+                        val point = points.find { it.latitude == lat && it.longitude == lng }
+                        if (point != null) {
+                            val fragment = PointBottomSheetDialogFragment.newInstance(
+                                coordId,
+                                point.title,
+                                String.format("%.6f, %.6f", point.latitude, point.longitude),
+                                point.description
+                            )
+                            fragment.setPointActionListener(object : PointBottomSheetDialogFragment.PointActionListener {
+                                override fun onDescriptionChanged(pointId: String, newDescription: String) {
+                                    updatePointDescriptionByCoordId(pointId, newDescription)
+                                }
+                                override fun onDeletePoint(pointId: String) {
+                                    deletePointByCoordId(pointId)
+                                }
+                            })
+                            fragment.show(parentFragmentManager, "PointBottomSheetDialogFragment")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun deletePointByCoordId(coordId: String) {
+        val parts = coordId.split(",")
+        if (parts.size == 2) {
+            val lat = parts[0].toDoubleOrNull()
+            val lng = parts[1].toDoubleOrNull()
+            if (lat != null && lng != null) {
+                val points = PointsStorage.loadPoints(requireContext()).toMutableList()
+                val removed = points.removeIf { it.latitude == lat && it.longitude == lng }
+                if (removed) {
+                    PointsStorage.savePoints(requireContext(), points)
+                    loadSavedPoints()
+                    Toast.makeText(requireContext(), "Point supprimé", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun updatePointDescriptionByCoordId(coordId: String, newDescription: String) {
+        val parts = coordId.split(",")
+        if (parts.size == 2) {
+            val lat = parts[0].toDoubleOrNull()
+            val lng = parts[1].toDoubleOrNull()
+            if (lat != null && lng != null) {
+                val points = PointsStorage.loadPoints(requireContext()).toMutableList()
+                val idx = points.indexOfFirst { it.latitude == lat && it.longitude == lng }
+                if (idx != -1) {
+                    points[idx] = points[idx].copy(description = newDescription)
+                    PointsStorage.savePoints(requireContext(), points)
+                    loadSavedPoints()
+                    Toast.makeText(requireContext(), "Description enregistrée", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
     
     // Fonction pour copier les coordonnées dans le presse-papier au format Google Maps
@@ -339,13 +419,13 @@ class MapFragment : Fragment() {
     fun addMarkers(markers: List<MarkerData>) {
         if (!isWebViewInitialized) {
             val newMarkers = markers.filterNot { it in pendingMarkers }
-            Log.d(TAG, "WebView non initialisée, mise en file d'attente de ${newMarkers.size} nouveaux marqueurs")
+            Log.d(TAG, "WebView non initialisée, mise en file d'attente de "+newMarkers.size+" nouveaux marqueurs")
             pendingMarkers.addAll(newMarkers)
             return
         }
 
         val markersJson = markers.map { marker ->
-            """{"lat":${marker.latitude},"lng":${marker.longitude},"title":"${marker.title}"}"""
+            """{"lat":${marker.latitude},"lng":${marker.longitude},"title":"${marker.title}","description":${org.json.JSONObject.quote(marker.description ?: "")}}"""
         }.joinToString(",", "[", "]")
 
         val jsCode = """
@@ -375,7 +455,8 @@ class MapFragment : Fragment() {
     data class MarkerData(
         val latitude: Double,
         val longitude: Double,
-        val title: String
+        val title: String,
+        var description: String? = null
     )
     
     @SuppressLint("MissingPermission")
@@ -460,12 +541,15 @@ class MapFragment : Fragment() {
     }
 
     // Modifier la méthode d'ajout de marqueurs pour sauvegarder les points
-    fun addMarker(latitude: Double, longitude: Double, title: String) {
-        val newMarker = MarkerData(latitude, longitude, title)
+    fun addMarker(latitude: Double, longitude: Double, title: String, description: String? = null) {
         val currentMarkers = PointsStorage.loadPoints(requireContext()).toMutableList()
-        currentMarkers.add(newMarker)
-        PointsStorage.savePoints(requireContext(), currentMarkers)
-        addMarkers(listOf(newMarker))
+        // Vérifie si le point existe déjà
+        val exists = currentMarkers.any { it.latitude == latitude && it.longitude == longitude }
+        if (!exists) {
+            currentMarkers.add(MarkerData(latitude, longitude, title, description))
+            PointsStorage.savePoints(requireContext(), currentMarkers)
+            loadSavedPoints()
+        }
     }
 
     override fun onResume() {
@@ -479,19 +563,17 @@ object PointsStorage {
     private const val FILE_NAME = "points.json"
 
     fun savePoints(context: Context, points: List<MapFragment.MarkerData>) {
-        val existingPoints = loadPoints(context).toMutableList()
-        existingPoints.addAll(points)
         val file = File(context.filesDir, FILE_NAME)
         val jsonArray = JSONArray()
-        existingPoints.forEach { point ->
+        points.forEach { point ->
             val jsonObject = JsonObject()
             jsonObject.put("latitude", point.latitude)
             jsonObject.put("longitude", point.longitude)
             jsonObject.put("title", point.title)
+            jsonObject.put("description", point.description ?: "")
             jsonArray.put(jsonObject)
         }
         FileWriter(file).use { it.write(jsonArray.toString()) }
-        Log.d("PointsStorage", "Points sauvegardés: ${jsonArray.length()} points dans le fichier ${file.absolutePath}")
     }
 
     fun loadPoints(context: Context): List<MapFragment.MarkerData> {
@@ -500,7 +582,6 @@ object PointsStorage {
             Log.d("PointsStorage", "Aucun fichier de points trouvé.")
             return emptyList()
         }
-
         val jsonArray = JSONArray(FileReader(file).readText())
         val points = mutableListOf<MapFragment.MarkerData>()
         for (i in 0 until jsonArray.length()) {
@@ -508,7 +589,8 @@ object PointsStorage {
             val latitude = jsonObject.getDouble("latitude")
             val longitude = jsonObject.getDouble("longitude")
             val title = jsonObject.getString("title")
-            points.add(MapFragment.MarkerData(latitude, longitude, title))
+            val description = if (jsonObject.has("description")) jsonObject.getString("description") else null
+            points.add(MapFragment.MarkerData(latitude, longitude, title, description))
         }
         Log.d("PointsStorage", "Points chargés: ${points.size} points")
         return points
