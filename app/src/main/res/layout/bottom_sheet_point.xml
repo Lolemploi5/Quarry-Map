@@ -56,8 +56,19 @@
         android:text="Coordonnées"
         app:layout_constraintTop_toBottomOf="@id/nameBarrier"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/ivCopyCoords"
         android:layout_marginTop="8dp"/>
+
+    <ImageView
+        android:id="@+id/ivCopyCoords"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_content_copy"
+        android:contentDescription="Copier les coordonnées"
+        app:layout_constraintTop_toTopOf="@id/tvCoordinates"
+        app:layout_constraintBottom_toBottomOf="@id/tvCoordinates"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="4dp"/>
 
     <EditText
         android:id="@+id/etDescription"

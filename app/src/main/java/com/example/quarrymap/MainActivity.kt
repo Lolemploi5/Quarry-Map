@@ -190,6 +190,7 @@ class MainActivity : AppCompatActivity() {
                                     val allPoints = PointsStorage.loadPoints(this).toMutableList()
                                     allPoints.add(newPoint)
                                     PointsStorage.savePoints(this, allPoints)
+                                    localMapFragment?.loadSavedPoints()
 
                                     Toast.makeText(this, "Point ajouté : $pointName", Toast.LENGTH_SHORT).show()
                                 } else {
@@ -260,6 +261,7 @@ class MainActivity : AppCompatActivity() {
                                 val allPoints = PointsStorage.loadPoints(this).toMutableList()
                                 allPoints.add(newPoint)
                                 PointsStorage.savePoints(this, allPoints)
+                                localMapFragment?.loadSavedPoints()
 
                                 Toast.makeText(this, "Point ajouté : $pointName", Toast.LENGTH_SHORT).show()
                             } else {

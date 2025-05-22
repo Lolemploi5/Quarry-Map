@@ -22,14 +22,18 @@ class PointBottomSheetDialogFragment : BottomSheetDialogFragment() {
         const val ARG_POINT_NAME = "arg_point_name"
         const val ARG_POINT_COORDS = "arg_point_coords"
         const val ARG_POINT_DESC = "arg_point_desc"
+        const val ARG_POINT_LAT = "arg_point_lat"
+        const val ARG_POINT_LNG = "arg_point_lng"
 
-        fun newInstance(pointId: String, name: String, coords: String, description: String?): PointBottomSheetDialogFragment {
+        fun newInstance(pointId: String, name: String, coords: String, description: String?, lat: Double? = null, lng: Double? = null): PointBottomSheetDialogFragment {
             val fragment = PointBottomSheetDialogFragment()
             val args = Bundle()
             args.putString(ARG_POINT_ID, pointId)
             args.putString(ARG_POINT_NAME, name)
             args.putString(ARG_POINT_COORDS, coords)
             args.putString(ARG_POINT_DESC, description)
+            if (lat != null) args.putDouble(ARG_POINT_LAT, lat)
+            if (lng != null) args.putDouble(ARG_POINT_LNG, lng)
             fragment.arguments = args
             return fragment
         }
@@ -53,6 +57,8 @@ class PointBottomSheetDialogFragment : BottomSheetDialogFragment() {
         val coords = arguments?.getString(ARG_POINT_COORDS) ?: ""
         val desc = arguments?.getString(ARG_POINT_DESC) ?: ""
         val pointId = arguments?.getString(ARG_POINT_ID) ?: ""
+        val lat = arguments?.getDouble(ARG_POINT_LAT)
+        val lng = arguments?.getDouble(ARG_POINT_LNG)
 
         val tvPointName = view.findViewById<TextView>(R.id.tvPointName)
         val etPointName = view.findViewById<EditText>(R.id.etPointName)
@@ -69,7 +75,21 @@ class PointBottomSheetDialogFragment : BottomSheetDialogFragment() {
             etPointName.requestFocus()
         }
 
-        view.findViewById<TextView>(R.id.tvCoordinates).text = coords
+        val tvCoordinates = view.findViewById<TextView>(R.id.tvCoordinates)
+        val ivCopyCoords = view.findViewById<View>(R.id.ivCopyCoords)
+        tvCoordinates.text = coords
+        ivCopyCoords.setOnClickListener {
+            val googleMapsCoords = if (lat != null && lng != null) {
+                "$lat,$lng"
+            } else {
+                coords
+            }
+            val clipboard = requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("Coordonnées Google Maps", googleMapsCoords)
+            clipboard.setPrimaryClip(clip)
+            android.widget.Toast.makeText(requireContext(), "Coordonnées copiées au format Google Maps", android.widget.Toast.LENGTH_SHORT).show()
+        }
+
         val etDescription = view.findViewById<EditText>(R.id.etDescription)
         etDescription.setText(desc)
 

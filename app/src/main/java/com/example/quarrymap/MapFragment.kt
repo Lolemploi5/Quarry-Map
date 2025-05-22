@@ -337,7 +337,9 @@ class MapFragment : Fragment() {
                                 coordId,
                                 point.title,
                                 String.format("%.6f, %.6f", point.latitude, point.longitude),
-                                point.description
+                                point.description,
+                                point.latitude,
+                                point.longitude
                             )
                             fragment.setPointActionListener(object : PointBottomSheetDialogFragment.PointActionListener {
                                 override fun onDescriptionChanged(pointId: String, newDescription: String) {
@@ -569,7 +571,15 @@ class MapFragment : Fragment() {
         if (!exists) {
             currentMarkers.add(MarkerData(latitude, longitude, title, description))
             PointsStorage.savePoints(requireContext(), currentMarkers)
-            loadSavedPoints()
+            // Attendre que la WebView soit bien initialisée avant de recharger les markers
+            fun refreshMarkersWithRetry(retry: Int = 0) {
+                if (isWebViewInitialized) {
+                    loadSavedPoints()
+                } else if (retry < 10) {
+                    binding.root.postDelayed({ refreshMarkersWithRetry(retry + 1) }, 100)
+                }
+            }
+            refreshMarkersWithRetry()
         }
     }
 
