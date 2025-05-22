@@ -14,6 +14,7 @@ class PointBottomSheetDialogFragment : BottomSheetDialogFragment() {
     interface PointActionListener {
         fun onDescriptionChanged(pointId: String, newDescription: String)
         fun onDeletePoint(pointId: String)
+        var onNameChanged: ((pointId: String, newName: String) -> Unit)?
     }
 
     companion object {
@@ -53,7 +54,21 @@ class PointBottomSheetDialogFragment : BottomSheetDialogFragment() {
         val desc = arguments?.getString(ARG_POINT_DESC) ?: ""
         val pointId = arguments?.getString(ARG_POINT_ID) ?: ""
 
-        view.findViewById<TextView>(R.id.tvPointName).text = name
+        val tvPointName = view.findViewById<TextView>(R.id.tvPointName)
+        val etPointName = view.findViewById<EditText>(R.id.etPointName)
+        val ivEditName = view.findViewById<View>(R.id.ivEditName)
+        tvPointName.text = name
+        etPointName.setText(name)
+        etPointName.visibility = View.GONE
+        tvPointName.visibility = View.VISIBLE
+
+        ivEditName.setOnClickListener {
+            tvPointName.visibility = View.GONE
+            ivEditName.visibility = View.GONE
+            etPointName.visibility = View.VISIBLE
+            etPointName.requestFocus()
+        }
+
         view.findViewById<TextView>(R.id.tvCoordinates).text = coords
         val etDescription = view.findViewById<EditText>(R.id.etDescription)
         etDescription.setText(desc)
@@ -67,7 +82,9 @@ class PointBottomSheetDialogFragment : BottomSheetDialogFragment() {
 
         view.findViewById<Button>(R.id.btnSave).setOnClickListener {
             val newDesc = etDescription.text.toString()
+            val newName = if (etPointName.visibility == View.VISIBLE) etPointName.text.toString() else tvPointName.text.toString()
             listener?.onDescriptionChanged(pointId, newDesc)
+            listener?.onNameChanged?.invoke(pointId, newName)
             dismiss()
         }
 

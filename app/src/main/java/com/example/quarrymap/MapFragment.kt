@@ -346,6 +346,9 @@ class MapFragment : Fragment() {
                                 override fun onDeletePoint(pointId: String) {
                                     deletePointByCoordId(pointId)
                                 }
+                                override var onNameChanged: ((String, String) -> Unit)?
+                                    get() = { pointId, newName -> updatePointNameByCoordId(pointId, newName) }
+                                    set(_) {}
                             })
                             fragment.show(parentFragmentManager, "PointBottomSheetDialogFragment")
                         }
@@ -385,6 +388,24 @@ class MapFragment : Fragment() {
                     PointsStorage.savePoints(requireContext(), points)
                     loadSavedPoints()
                     Toast.makeText(requireContext(), "Description enregistrée", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun updatePointNameByCoordId(coordId: String, newName: String) {
+        val parts = coordId.split(",")
+        if (parts.size == 2) {
+            val lat = parts[0].toDoubleOrNull()
+            val lng = parts[1].toDoubleOrNull()
+            if (lat != null && lng != null) {
+                val points = PointsStorage.loadPoints(requireContext()).toMutableList()
+                val idx = points.indexOfFirst { it.latitude == lat && it.longitude == lng }
+                if (idx != -1) {
+                    points[idx] = points[idx].copy(title = newName)
+                    PointsStorage.savePoints(requireContext(), points)
+                    loadSavedPoints()
+                    Toast.makeText(requireContext(), "Nom modifié", Toast.LENGTH_SHORT).show()
                 }
             }
         }

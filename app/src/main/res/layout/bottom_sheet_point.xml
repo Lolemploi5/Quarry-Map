@@ -5,6 +5,15 @@
     android:layout_height="wrap_content"
     android:padding="16dp">
 
+    <!-- Barrier pour gérer la position dynamique sous le nom (TextView ou EditText) -->
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/nameBarrier"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="tvPointName,etPointName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <!-- Ligne du nom du point avec crayon -->
     <TextView
         android:id="@+id/tvPointName"
         android:layout_width="0dp"
@@ -14,6 +23,30 @@
         android:textSize="18sp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/ivEditName"
+        android:layout_marginEnd="8dp"/>
+
+    <ImageView
+        android:id="@+id/ivEditName"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@android:drawable/ic_menu_edit"
+        android:contentDescription="Modifier le nom"
+        app:layout_constraintTop_toTopOf="@id/tvPointName"
+        app:layout_constraintBottom_toBottomOf="@id/tvPointName"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="4dp"/>
+
+    <EditText
+        android:id="@+id/etPointName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Nom du point"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
     <TextView
@@ -21,7 +54,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Coordonnées"
-        app:layout_constraintTop_toBottomOf="@id/tvPointName"
+        app:layout_constraintTop_toBottomOf="@id/nameBarrier"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="8dp"/>
