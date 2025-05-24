@@ -14,12 +14,16 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.Fragment
@@ -164,14 +168,19 @@ class MainActivity : AppCompatActivity() {
                     when (menuItem.itemId) {
                         R.id.add_point -> {
                             // Afficher un dialogue pour demander le nom du point
-                            val dialog = android.app.AlertDialog.Builder(this)
-                            val input = android.widget.EditText(this)
-                            input.hint = "Entrez le nom du point"
-                            dialog.setTitle("Ajouter un point")
-                            dialog.setView(input)
+                            val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_point, null)
+                            val etPointName = dialogView.findViewById<EditText>(R.id.etPointName)
+                            val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
+                            val btnValidate = dialogView.findViewById<Button>(R.id.btnValidate)
 
-                            dialog.setPositiveButton("Valider") { _, _ ->
-                                val pointName = input.text.toString()
+                            val dialog = AlertDialog.Builder(this)
+                                .setView(dialogView)
+                                .setCancelable(false)
+                                .create()
+
+                            btnCancel.setOnClickListener { dialog.dismiss() }
+                            btnValidate.setOnClickListener {
+                                val pointName = etPointName.text.toString().trim()
                                 if (pointName.isNotEmpty()) {
                                     val localMapFragment = supportFragmentManager.findFragmentById(R.id.container) as? MapFragment
                                     val latitude = localMapFragment?.currentLatitude ?: 0.0
@@ -193,13 +202,10 @@ class MainActivity : AppCompatActivity() {
                                     localMapFragment?.loadSavedPoints()
 
                                     Toast.makeText(this, "Point ajouté : $pointName", Toast.LENGTH_SHORT).show()
+                                    dialog.dismiss()
                                 } else {
-                                    Toast.makeText(this, "Le nom du point ne peut pas être vide", Toast.LENGTH_SHORT).show()
+                                    etPointName.error = "Le nom ne peut pas être vide"
                                 }
-                            }
-
-                            dialog.setNegativeButton("Annuler") { dialogInterface, _ ->
-                                dialogInterface.dismiss()
                             }
 
                             dialog.show()
@@ -235,14 +241,19 @@ class MainActivity : AppCompatActivity() {
                 when (menuItem.itemId) {
                     R.id.add_point -> {
                         // Afficher un dialogue pour demander le nom du point
-                        val dialog = android.app.AlertDialog.Builder(this)
-                        val input = android.widget.EditText(this)
-                        input.hint = "Entrez le nom du point"
-                        dialog.setTitle("Ajouter un point")
-                        dialog.setView(input)
+                        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_point, null)
+                        val etPointName = dialogView.findViewById<EditText>(R.id.etPointName)
+                        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
+                        val btnValidate = dialogView.findViewById<Button>(R.id.btnValidate)
 
-                        dialog.setPositiveButton("Valider") { _, _ ->
-                            val pointName = input.text.toString()
+                        val dialog = AlertDialog.Builder(this)
+                            .setView(dialogView)
+                            .setCancelable(false)
+                            .create()
+
+                        btnCancel.setOnClickListener { dialog.dismiss() }
+                        btnValidate.setOnClickListener {
+                            val pointName = etPointName.text.toString().trim()
                             if (pointName.isNotEmpty()) {
                                 val localMapFragment = supportFragmentManager.findFragmentById(R.id.container) as? MapFragment
                                 val latitude = localMapFragment?.currentLatitude ?: 0.0
@@ -264,13 +275,10 @@ class MainActivity : AppCompatActivity() {
                                 localMapFragment?.loadSavedPoints()
 
                                 Toast.makeText(this, "Point ajouté : $pointName", Toast.LENGTH_SHORT).show()
+                                dialog.dismiss()
                             } else {
-                                Toast.makeText(this, "Le nom du point ne peut pas être vide", Toast.LENGTH_SHORT).show()
+                                etPointName.error = "Le nom ne peut pas être vide"
                             }
-                        }
-
-                        dialog.setNegativeButton("Annuler") { dialogInterface, _ ->
-                            dialogInterface.dismiss()
                         }
 
                         dialog.show()
