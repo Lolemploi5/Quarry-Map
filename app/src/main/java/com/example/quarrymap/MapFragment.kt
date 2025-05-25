@@ -339,7 +339,8 @@ class MapFragment : Fragment() {
                                 String.format("%.6f, %.6f", point.latitude, point.longitude),
                                 point.description,
                                 point.latitude,
-                                point.longitude
+                                point.longitude,
+                                ArrayList(point.photoUris) // passage de la liste d'images
                             )
                             fragment.setPointActionListener(object : PointBottomSheetDialogFragment.PointActionListener {
                                 override fun onDescriptionChanged(pointId: String, newDescription: String) {
@@ -350,6 +351,9 @@ class MapFragment : Fragment() {
                                 }
                                 override var onNameChanged: ((String, String) -> Unit)?
                                     get() = { pointId, newName -> updatePointNameByCoordId(pointId, newName) }
+                                    set(_) {}
+                                override var onPhotoChanged: ((String, ArrayList<String>) -> Unit)?
+                                    get() = { pointId, photoUris -> updatePointPhotoUriByCoordId(pointId, photoUris) }
                                     set(_) {}
                             })
                             fragment.show(parentFragmentManager, "PointBottomSheetDialogFragment")
@@ -408,6 +412,25 @@ class MapFragment : Fragment() {
                     PointsStorage.savePoints(requireContext(), points)
                     loadSavedPoints()
                     Toast.makeText(requireContext(), "Nom modifié", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    // Nouvelle fonction pour mettre à jour la liste d'images
+    private fun updatePointPhotoUriByCoordId(coordId: String, photoUris: ArrayList<String>?) {
+        val parts = coordId.split(",")
+        if (parts.size == 2) {
+            val lat = parts[0].toDoubleOrNull()
+            val lng = parts[1].toDoubleOrNull()
+            if (lat != null && lng != null) {
+                val points = PointsStorage.loadPoints(requireContext()).toMutableList()
+                val idx = points.indexOfFirst { it.latitude == lat && it.longitude == lng }
+                if (idx != -1) {
+                    points[idx] = points[idx].copy(photoUris = photoUris ?: arrayListOf())
+                    PointsStorage.savePoints(requireContext(), points)
+                    loadSavedPoints()
+                    Toast.makeText(requireContext(), "Images enregistrées", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -479,7 +502,8 @@ class MapFragment : Fragment() {
         val latitude: Double,
         val longitude: Double,
         val title: String,
-        var description: String? = null
+        var description: String? = null,
+        var photoUris: MutableList<String> = mutableListOf() // Liste des chemins d'images
     )
     
     @SuppressLint("MissingPermission")
@@ -602,6 +626,10 @@ object PointsStorage {
             jsonObject.put("longitude", point.longitude)
             jsonObject.put("title", point.title)
             jsonObject.put("description", point.description ?: "")
+            // Sauvegarde la liste des images
+            val imagesArray = JSONArray()
+            point.photoUris.forEach { imagesArray.put(it) }
+            jsonObject.put("photoUris", imagesArray)
             jsonArray.put(jsonObject)
         }
         FileWriter(file).use { it.write(jsonArray.toString()) }
@@ -621,7 +649,14 @@ object PointsStorage {
             val longitude = jsonObject.getDouble("longitude")
             val title = jsonObject.getString("title")
             val description = if (jsonObject.has("description")) jsonObject.getString("description") else null
-            points.add(MapFragment.MarkerData(latitude, longitude, title, description))
+            val photoUris = mutableListOf<String>()
+            if (jsonObject.has("photoUris")) {
+                val imagesArray = jsonObject.getJSONArray("photoUris")
+                for (j in 0 until imagesArray.length()) {
+                    photoUris.add(imagesArray.getString(j))
+                }
+            }
+            points.add(MapFragment.MarkerData(latitude, longitude, title, description, photoUris))
         }
         Log.d("PointsStorage", "Points chargés: ${points.size} points")
         return points

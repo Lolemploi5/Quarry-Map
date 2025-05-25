@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="80dp"
+    android:layout_height="80dp"
+    android:layout_marginEnd="8dp">
+
+    <ImageView
+        android:id="@+id/ivImagePreview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:background="@android:color/darker_gray"
+        android:contentDescription="Miniature de la photo" />
+
+    <ImageButton
+        android:id="@+id/btnDeleteImage"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="4dp"
+        android:background="@android:color/transparent"
+        android:src="@android:drawable/ic_menu_delete"
+        android:contentDescription="Supprimer la photo" />
+
+</FrameLayout>

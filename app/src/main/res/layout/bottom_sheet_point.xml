@@ -83,6 +83,36 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="12dp"/>
 
+    <!-- Carrousel horizontal pour les miniatures d'images (RecyclerView fiable) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvImagesCarousel"
+        android:layout_width="0dp"
+        android:layout_height="100dp"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/etDescription"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="12dp"
+        android:overScrollMode="never"
+        android:clipToPadding="false"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"/>
+
+    <!-- Indicateur de chargement lors de l'ajout d'une image -->
+    <ProgressBar
+        android:id="@+id/progressImageLoading"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/rvImagesCarousel"
+        app:layout_constraintBottom_toBottomOf="@id/rvImagesCarousel"
+        app:layout_constraintStart_toStartOf="@id/rvImagesCarousel"
+        app:layout_constraintEnd_toEndOf="@id/rvImagesCarousel"
+        android:elevation="10dp"/>
+
+    <!-- Les boutons Enregistrer et Supprimer sont déplacés plus bas -->
     <Button
         android:id="@+id/btnSave"
         android:layout_width="0dp"
@@ -90,7 +120,7 @@
         android:text="Enregistrer"
         android:textColor="@android:color/white"
         android:backgroundTint="@android:color/holo_green_dark"
-        app:layout_constraintTop_toBottomOf="@id/etDescription"
+        app:layout_constraintTop_toBottomOf="@id/rvImagesCarousel"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="16dp"/>
