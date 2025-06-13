@@ -371,7 +371,16 @@ class MapFragment : Fragment() {
             val lng = parts[1].toDoubleOrNull()
             if (lat != null && lng != null) {
                 val points = PointsStorage.loadPoints(requireContext()).toMutableList()
-                val removed = points.removeIf { it.latitude == lat && it.longitude == lng }
+                val iterator = points.iterator()
+                var removed = false
+                while (iterator.hasNext()) {
+                    val point = iterator.next()
+                    if (point.latitude == lat && point.longitude == lng) {
+                        iterator.remove()
+                        removed = true
+                        break
+                    }
+                }
                 if (removed) {
                     PointsStorage.savePoints(requireContext(), points)
                     loadSavedPoints()

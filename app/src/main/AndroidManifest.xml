@@ -31,11 +31,16 @@
         android:largeHeap="true"
         android:requestLegacyExternalStorage="true"
         android:enableOnBackInvokedCallback="true"
+        tools:replace="android:allowBackup"
         tools:targetApi="31">
 
         <activity
             android:name=".ImageViewerActivity"
             android:exported="false" />
+        <activity
+            android:name=".PDFViewerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QuarryMap" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

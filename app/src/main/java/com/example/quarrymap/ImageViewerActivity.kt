@@ -12,6 +12,7 @@ import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import com.bumptech.glide.Glide
 import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.github.chrisbanes.photoview.PhotoView
@@ -81,7 +82,7 @@ class ImageViewerActivity : AppCompatActivity() {
         try {
             val extension = imageFile.extension.lowercase()
             
-            if (extension in listOf("jpg", "jpeg", "png")) {
+            if (extension in listOf("jpg", "jpeg", "png", "bmp", "gif", "webp")) {
                 val options = BitmapFactory.Options().apply {
                     inJustDecodeBounds = true
                 }
@@ -107,6 +108,18 @@ class ImageViewerActivity : AppCompatActivity() {
                     val bitmap = BitmapFactory.decodeFile(imageFile.absolutePath)
                     photoView.setImageBitmap(bitmap)
                 }
+            } else if (extension in listOf("tiff", "tif")) {
+                // Utiliser PhotoView pour les TIFF avec Glide et décodeur personnalisé
+                photoView.visibility = View.VISIBLE
+                subsamplingView.visibility = View.GONE
+                imageView = photoView
+                
+                Glide.with(this)
+                    .asBitmap()
+                    .load(Uri.fromFile(imageFile))
+                    .placeholder(R.drawable.ic_image_placeholder)
+                    .error(R.drawable.ic_broken_image)
+                    .into(photoView)
             } else if (extension == "svg") {
                 // Utiliser PhotoView pour les SVG
                 photoView.visibility = View.VISIBLE
@@ -114,7 +127,7 @@ class ImageViewerActivity : AppCompatActivity() {
                 imageView = photoView
                 
                 // Charger l'image SVG avec Glide et SVG support
-                GlideApp.with(this)
+                Glide.with(this)
                     .load(Uri.fromFile(imageFile))
                     .into(photoView)
             } else {
@@ -123,7 +136,7 @@ class ImageViewerActivity : AppCompatActivity() {
                 subsamplingView.visibility = View.GONE
                 imageView = photoView
                 
-                GlideApp.with(this)
+                Glide.with(this)
                     .load(Uri.fromFile(imageFile))
                     .into(photoView)
             }

@@ -75,6 +75,17 @@ class FavoritesFragment : Fragment(), ImageAdapter.OnFavoriteChangeListener {
         // Configurer l'adaptateur avec l'écouteur pour les favoris
         adapter.onFavoriteChangeListener = this
         
+        // Configurer l'écouteur pour la suppression
+        adapter.onImageDeletedListener = object : ImageAdapter.OnImageDeletedListener {
+            override fun onImageDeleted(imagePath: String) {
+                // Supprimer des favoris automatiquement
+                favoriteManager.removeFavorite(imagePath)
+                // Recharger la liste des favoris
+                loadFavorites()
+                Toast.makeText(requireContext(), "Planche supprimée et retirée des favoris", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         // Configurer l'écouteur pour le renommage
         adapter.onImageRenamedListener = object : ImageAdapter.OnImageRenamedListener {
             override fun onImageRenamed(oldPath: String, newPath: String) {

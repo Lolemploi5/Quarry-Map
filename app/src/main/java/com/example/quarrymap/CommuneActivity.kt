@@ -67,6 +67,24 @@ class CommuneActivity : AppCompatActivity() {
             }
         }
 
+        // Définir l'écouteur de suppression
+        adapter.onImageDeletedListener = object : ImageAdapter.OnImageDeletedListener {
+            override fun onImageDeleted(imagePath: String) {
+                // Supprimer de la liste des images
+                val index = images.indexOf(imagePath)
+                if (index != -1) {
+                    images.removeAt(index)
+                }
+                
+                // Supprimer des favoris si c'était un favori
+                if (favoriteManager.isFavorite(imagePath)) {
+                    favoriteManager.removeFavorite(imagePath)
+                }
+                
+                Log.d("CommuneActivity", "Image supprimée: $imagePath")
+            }
+        }
+
         // Définir l'écouteur de renommage
         adapter.onImageRenamedListener = object : ImageAdapter.OnImageRenamedListener {
             override fun onImageRenamed(oldPath: String, newPath: String) {
@@ -106,7 +124,9 @@ class CommuneActivity : AppCompatActivity() {
                     
                     val supportedExtensions = listOf(
                         "jpg", "jpeg", "png", "gif", "bmp", "webp",  // Formats bitmap
-                        "svg", "xml", "vector"                          // Formats vectoriels
+                        "svg", "xml", "vector",                      // Formats vectoriels
+                        "tiff", "tif",                               // Formats TIFF
+                        "pdf"                                        // Format PDF
                     )
                     
                     val jpgFiles = imageFiles.filter { it.isFile && (it.extension.lowercase() == "jpg" || it.extension.lowercase() == "jpeg") }

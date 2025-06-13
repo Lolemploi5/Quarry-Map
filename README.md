@@ -1,6 +1,11 @@
 # 🗺️ Quarry Map
 
-[![Android CI](https://github.com/Lolemploi5/Quarry-Map/actions/workflows/android.yml/badge.svg)](https://github.com/Lolemploi5/Quarry-Map/actions/workflows/android.yml)
+[![Android- 📤 **Exportation** des données et annotations vers fichiers `.json`
+- 📄 **Support multi-format étendu** : 
+  - **Images** : `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.webp`, `.svg`, `.xml`, `.vector`
+  - **🆕 TIFF** : `.tiff`, `.tif` (décodage optimisé avec gestion mémoire)
+  - **🆕 PDF** : `.pdf` (visualiseur natif avec navigation entre pages)
+- 🌐 **Mode hors-ligne** : toutes les fonctionnalités restent accessibles sans connexion](https://github.com/Lolemploi5/Quarry-Map/actions/workflows/android.yml/badge.svg)](https://github.com/Lolemploi5/Quarry-Map/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Issues](https://img.shields.io/github/issues/Lolemploi5/Quarry-Map)](https://github.com/Lolemploi5/Quarry-Map/issues)
 [![Stars](https://img.shields.io/github/stars/Lolemploi5/Quarry-Map?style=social)](https://github.com/Lolemploi5/Quarry-Map)
@@ -134,6 +139,40 @@ Ce projet est distribué sous la licence **MIT**. Consultez le fichier [`LICENSE
 ## 📧 Support & Contact
 
 Pour toute question, suggestion ou bug, ouvrez une issue sur GitHub ou contactez l’auteur via le dépôt.
+
+---
+
+## 📄 Formats Supportés
+
+### 🖼️ Formats d'Images Traditionnels
+- **JPEG/JPG** : Format standard pour photos et images
+- **PNG** : Images avec transparence et haute qualité
+- **GIF** : Images animées et statiques
+- **BMP** : Format bitmap Windows
+- **WebP** : Format moderne Google avec compression optimisée
+- **SVG** : Graphiques vectoriels évolutifs
+- **Vector/XML** : Drawables vectoriels Android
+
+### 🆕 Nouveaux Formats Avancés
+
+#### 📋 TIFF (.tiff, .tif)
+- **Support complet** : Mono et multi-pages
+- **Optimisation mémoire** : Échantillonnage automatique pour les gros fichiers
+- **Haute qualité** : Idéal pour plans techniques et cartes détaillées
+- **Intégration Glide** : Décodage personnalisé avec cache
+
+#### 📑 PDF (.pdf)
+- **Visualiseur natif** : Interface dédiée avec PdfRenderer Android
+- **Navigation intuitive** : Boutons précédent/suivant avec indicateur de page
+- **Fonctionnalités** : Zoom, partage, gestion d'erreurs
+- **Performance** : Rendu page par page pour optimiser l'utilisation mémoire
+- **Compatibilité** : API 21+ (Android 5.0+)
+
+### 🔧 Gestion Technique
+- **Sélection intelligente** : Redirection automatique selon le type de fichier
+- **Validation** : Vérification des extensions lors de l'import
+- **Gestion d'erreurs** : Messages utilisateur en cas de fichier corrompu
+- **Cache** : Optimisation de l'affichage avec Glide
 
 ---
 

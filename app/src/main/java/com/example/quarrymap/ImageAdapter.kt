@@ -27,7 +27,7 @@ import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.caverock.androidsvg.SVG
-import com.example.quarrymap.GlideApp
+// import com.example.quarrymap.GlideApp // Sera réactivé après génération KSP
 
 class ImageAdapter(
     private val images: List<String>,
@@ -39,6 +39,11 @@ class ImageAdapter(
 
     // Liste mutable pour gérer les modifications
     private val mutableImages = images.toMutableList()
+    
+    // Interface pour notifier l'activité parente de la suppression
+    interface OnImageDeletedListener {
+        fun onImageDeleted(imagePath: String)
+    }
     
     // Interface pour notifier l'activité parente du renommage
     interface OnImageRenamedListener {
@@ -53,6 +58,7 @@ class ImageAdapter(
     }
     
     // Écouteurs
+    var onImageDeletedListener: OnImageDeletedListener? = null
     var onImageRenamedListener: OnImageRenamedListener? = null
     var onFavoriteChangeListener: OnFavoriteChangeListener? = null
 
@@ -62,6 +68,7 @@ class ImageAdapter(
         val infoText: TextView = view.findViewById(R.id.infoText)
         val renameButton: ImageButton = view.findViewById(R.id.renameButton)
         val favoriteButton: ImageButton = view.findViewById(R.id.favoriteButton)
+        val deleteButton: ImageButton = view.findViewById(R.id.deleteButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageViewHolder {
@@ -72,7 +79,7 @@ class ImageAdapter(
 
     // Obtenir une RequestBuilder pour les SVG
     private fun getSvgRequestBuilder(context: View): RequestBuilder<PictureDrawable> {
-        return GlideApp.with(context)
+        return Glide.with(context)
             .`as`(PictureDrawable::class.java)
             .diskCacheStrategy(DiskCacheStrategy.ALL)
             .transition(DrawableTransitionOptions.withCrossFade())
@@ -121,8 +128,14 @@ class ImageAdapter(
             val isSvg = extension == "svg"
             val isVector = extension in listOf("xml", "vector")
             val isJpg = extension in listOf("jpg", "jpeg")
+            val isTiff = extension in listOf("tiff", "tif")
+            val isPdf = extension == "pdf"
             
-            if (isJpg) {
+            if (isPdf) {
+                Log.d("ImageAdapter", "Fichier PDF détecté: ${file.name}")
+                // Générer une preview du PDF
+                generatePdfPreview(file, holder.planchePreview)
+            } else if (isJpg) {
                 Log.d("ImageAdapter", "Chargement d'une image JPG: ${file.name}")
                 
                 Glide.with(holder.itemView.context)
@@ -131,6 +144,18 @@ class ImageAdapter(
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .format(DecodeFormat.PREFER_RGB_565)
                     .override(500, 500)
+                    .into(holder.planchePreview)
+            } else if (isTiff) {
+                Log.d("ImageAdapter", "Chargement d'une image TIFF: ${file.name}")
+                
+                Glide.with(holder.itemView.context)
+                    .asBitmap()
+                    .load(Uri.fromFile(file))
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .format(DecodeFormat.PREFER_RGB_565)
+                    .override(500, 500)
+                    .placeholder(R.drawable.ic_image_placeholder)
+                    .error(R.drawable.ic_broken_image)
                     .into(holder.planchePreview)
             } else if (isSvg) {
                 try {
@@ -169,6 +194,13 @@ class ImageAdapter(
             holder.planchePreview.setImageResource(R.drawable.ic_broken_image)
         }
 
+        // Configuration du bouton de suppression
+        holder.deleteButton.setOnClickListener {
+            // Éviter que le clic sur le bouton ne déclenche aussi le clic sur la carte
+            it.isClickable = true
+            showDeleteConfirmationDialog(holder.itemView.context, file, position)
+        }
+        
         // Configuration du bouton de renommage
         holder.renameButton.setOnClickListener {
             // Éviter que le clic sur le bouton ne déclenche aussi le clic sur la carte
@@ -196,10 +228,61 @@ class ImageAdapter(
                         .setDuration(100)
                         .start()
                     
-                    // Appeler le callback après l'animation
-                    onItemClick(imagePath)
+                    // Déterminer le type de fichier et ouvrir le bon visualiseur
+                    val extension = file.extension.lowercase()
+                    if (extension == "pdf") {
+                        PDFViewerActivity.start(holder.itemView.context, imagePath)
+                    } else {
+                        // Appeler le callback pour les images
+                        onItemClick(imagePath)
+                    }
                 }
                 .start()
+        }
+    }
+
+    // Afficher la boîte de dialogue de confirmation de suppression
+    private fun showDeleteConfirmationDialog(context: Context, file: File, position: Int) {
+        val alertDialog = AlertDialog.Builder(context, R.style.DarkAlertDialog)
+            .setTitle("Supprimer la planche")
+            .setMessage("Êtes-vous sûr de vouloir supprimer définitivement la planche \"${file.nameWithoutExtension}\" ?\n\nCette action ne peut pas être annulée.")
+            .setIcon(R.drawable.ic_delete)
+            .setPositiveButton("Supprimer") { _, _ ->
+                deleteFile(context, file, position)
+            }
+            .setNegativeButton("Annuler", null)
+            .create()
+        
+        // Personnaliser les couleurs des boutons
+        alertDialog.show()
+        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(context.getColor(android.R.color.holo_red_dark))
+    }
+
+    // Supprimer le fichier et mettre à jour l'interface
+    private fun deleteFile(context: Context, file: File, position: Int) {
+        try {
+            val filePath = file.absolutePath
+            
+            // Supprimer le fichier
+            val success = file.delete()
+            if (success) {
+                // Supprimer de notre liste interne
+                mutableImages.removeAt(position)
+                notifyItemRemoved(position)
+                notifyItemRangeChanged(position, mutableImages.size)
+                
+                // Notifier l'activité parente
+                onImageDeletedListener?.onImageDeleted(filePath)
+                
+                Log.d("ImageAdapter", "Fichier supprimé avec succès: ${file.name}")
+                Toast.makeText(context, "Planche supprimée avec succès", Toast.LENGTH_SHORT).show()
+            } else {
+                Log.e("ImageAdapter", "Échec de la suppression: ${file.name}")
+                Toast.makeText(context, "Échec de la suppression du fichier", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Log.e("ImageAdapter", "Erreur lors de la suppression du fichier", e)
+            Toast.makeText(context, "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -286,6 +369,65 @@ class ImageAdapter(
         }
     }
 
+    // Générer une preview de la première page du PDF
+    private fun generatePdfPreview(file: File, imageView: ImageView) {
+        try {
+            // D'abord afficher un placeholder pendant le chargement
+            imageView.setImageResource(R.drawable.ic_pdf_preview)
+            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+            
+            // Charger la preview en arrière-plan
+            Thread {
+                var pdfRenderer: android.graphics.pdf.PdfRenderer? = null
+                var page: android.graphics.pdf.PdfRenderer.Page? = null
+                
+                try {
+                    val fileDescriptor = android.os.ParcelFileDescriptor.open(file, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+                    pdfRenderer = android.graphics.pdf.PdfRenderer(fileDescriptor)
+                    
+                    if (pdfRenderer.pageCount > 0) {
+                        page = pdfRenderer.openPage(0)
+                        
+                        // Créer un bitmap pour la preview (plus petit pour la liste)
+                        val previewSize = 400 // Taille de preview appropriée
+                        val ratio = page.width.toFloat() / page.height.toFloat()
+                        val width: Int
+                        val height: Int
+                        
+                        if (ratio > 1) {
+                            width = previewSize
+                            height = (previewSize / ratio).toInt()
+                        } else {
+                            height = previewSize
+                            width = (previewSize * ratio).toInt()
+                        }
+                        
+                        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+                        page.render(bitmap, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                        
+                        // Retourner sur le thread principal pour mettre à jour l'UI
+                        imageView.post {
+                            imageView.setImageBitmap(bitmap)
+                            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("ImageAdapter", "Erreur lors de la génération de preview PDF", e)
+                    // En cas d'erreur, garder l'icône par défaut
+                } finally {
+                    page?.close()
+                    pdfRenderer?.close()
+                }
+            }.start()
+            
+        } catch (e: Exception) {
+            Log.e("ImageAdapter", "Erreur lors de l'ouverture du PDF pour preview", e)
+            // En cas d'erreur, utiliser l'icône par défaut
+            imageView.setImageResource(R.drawable.ic_pdf_preview)
+            imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
+        }
+    }
+
     // Formatter le nom de fichier pour l'affichage
     private fun formatFileName(fileName: String): String {
         // Remplacer les underscores par des espaces
@@ -298,7 +440,7 @@ class ImageAdapter(
         
         // Tenter d'obtenir les dimensions de l'image si c'est une image bitmap
         val dimensions = try {
-            if (file.extension.lowercase() in listOf("jpg", "jpeg", "png", "bmp")) {
+            if (file.extension.lowercase() in listOf("jpg", "jpeg", "png", "bmp", "tiff", "tif")) {
                 val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeFile(file.absolutePath, options)
                 "${options.outWidth}x${options.outHeight} • "

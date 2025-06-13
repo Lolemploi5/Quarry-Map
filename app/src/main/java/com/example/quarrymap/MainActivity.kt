@@ -386,7 +386,7 @@ class MainActivity : AppCompatActivity() {
                 )?.use { c ->
                     while (c.moveToNext()) {
                         val mime = c.getString(0)
-                        if (mime.startsWith("image/")) totalImages++
+                        if (mime.startsWith("image/") || mime == "application/pdf") totalImages++
                     }
                 }
                 
@@ -427,8 +427,8 @@ class MainActivity : AppCompatActivity() {
                         val name = c.getString(nameIndex)
                         val mime = c.getString(mimeIndex)
                         
-                        // Traiter uniquement les images
-                        if (mime.startsWith("image/")) {
+                        // Traiter uniquement les images et PDF
+                        if (mime.startsWith("image/") || mime == "application/pdf") {
                             try {
                                 val communeName = name.split("_").firstOrNull() ?: "Inconnu"
                                 

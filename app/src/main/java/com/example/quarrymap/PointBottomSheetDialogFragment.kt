@@ -22,7 +22,7 @@ import java.io.FileInputStream
 import android.graphics.BitmapFactory
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.constraintlayout.helper.widget.Carousel
+// import androidx.constraintlayout.helper.widget.Carousel // Temporairement désactivé
 import androidx.constraintlayout.motion.widget.MotionLayout
 import com.google.android.material.snackbar.Snackbar
 import androidx.recyclerview.widget.ItemTouchHelper

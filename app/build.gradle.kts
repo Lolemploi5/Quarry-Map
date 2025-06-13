@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.kapt")
+    id("com.google.devtools.ksp") version "1.9.10-1.0.13"
 }
 
 android {
@@ -67,10 +67,16 @@ dependencies {
 
     // Glide pour les images
     implementation("com.github.bumptech.glide:glide:4.16.0")
-    kapt("com.github.bumptech.glide:compiler:4.16.0")
+    ksp("com.github.bumptech.glide:ksp:4.16.0")
     
     // Support SVG pour Glide
     implementation("com.caverock:androidsvg-aar:1.4")
+    
+    // Support TIFF avec Android-TiffBitmapFactory
+    implementation("io.github.beyka:Android-TiffBitmapFactory:0.9.9.1")
+    
+    // Support PDF natif Android (PdfRenderer)
+    // Pas de dépendance externe nécessaire - utilise l'API native Android
 
     // Google Play services location
     implementation("com.google.android.gms:play-services-location:21.0.1")

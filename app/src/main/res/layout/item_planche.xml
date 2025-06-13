@@ -46,7 +46,16 @@
                     android:layout_height="32dp"
                     android:background="@drawable/circle_button_small"
                     android:src="@drawable/ic_edit"
-                    android:contentDescription="Renommer la planche" />
+                    android:contentDescription="Renommer la planche"
+                    android:layout_marginEnd="8dp" />
+
+                <ImageButton
+                    android:id="@+id/deleteButton"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/circle_button_small"
+                    android:src="@drawable/ic_delete"
+                    android:contentDescription="Supprimer la planche" />
             </LinearLayout>
         </FrameLayout>
 

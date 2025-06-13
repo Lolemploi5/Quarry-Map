@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#88000000"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Dark"
+        app:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <!-- Zone d'affichage du PDF avec zoom -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:background="@android:color/black">
+
+        <!-- PhotoView pour le zoom et les gestes -->
+        <com.github.chrisbanes.photoview.PhotoView
+            android:id="@+id/photoViewPdf"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter"
+            android:background="@android:color/black"
+            android:contentDescription="Page du PDF" />
+
+        <!-- Indicateur de chargement -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <!-- Indicateur de page en overlay -->
+        <TextView
+            android:id="@+id/textCurrentPage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="16dp"
+            android:text="Page 1 sur 1"
+            android:textAlignment="center"
+            android:textSize="14sp"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            android:background="#88000000"
+            android:padding="8dp"
+            android:visibility="visible" />
+
+        <!-- Boutons de navigation discrets -->
+        <ImageButton
+            android:id="@+id/buttonPrevious"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_vertical|start"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/circle_button_small"
+            android:src="@drawable/ic_arrow_back"
+            android:contentDescription="Page précédente"
+            android:alpha="0.7"
+            android:visibility="visible" />
+
+        <ImageButton
+            android:id="@+id/buttonNext"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/circle_button_small"
+            android:src="@drawable/ic_arrow_forward"
+            android:contentDescription="Page suivante"
+            android:alpha="0.7"
+            android:visibility="visible" />
+
+    </FrameLayout>
+
+    <!-- Bouton de partage flottant -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/shareButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:contentDescription="Partager le PDF"
+        android:src="@android:drawable/ic_menu_share"
+        app:backgroundTint="@color/colorAccent" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
