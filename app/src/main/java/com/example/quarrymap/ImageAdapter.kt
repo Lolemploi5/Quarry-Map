@@ -255,7 +255,7 @@ class ImageAdapter(
         
         // Personnaliser les couleurs des boutons
         alertDialog.show()
-        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(context.getColor(android.R.color.holo_red_dark))
+        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(androidx.core.content.ContextCompat.getColor(context, android.R.color.holo_red_dark))
     }
 
     // Supprimer le fichier et mettre à jour l'interface
