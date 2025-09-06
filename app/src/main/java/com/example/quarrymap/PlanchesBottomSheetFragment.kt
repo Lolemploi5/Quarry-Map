@@ -20,11 +20,12 @@ import com.google.android.material.slider.Slider
 import java.io.File
 import java.util.Locale
 
-class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
+class PlanchesBottomSheetFragment : BottomSheetDialogFragment(), ConfigurationManagerDialog.ConfigurationManagerCallback {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: PlancheBottomSheetAdapter
     private lateinit var addPlancheButton: MaterialButton
+    private lateinit var manageConfigsButton: MaterialButton
     private lateinit var controlsSection: ConstraintLayout
     
     // Contrôles de la planche
@@ -36,6 +37,8 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
     private lateinit var opacityValue: TextView
     private lateinit var savePositionButton: Button
     private lateinit var removePlancheButton: Button
+    private lateinit var anchorButton: Button
+    private lateinit var editAnchorButton: Button
     private lateinit var closeControlsButton: ImageButton
     
     // Callback pour interagir avec le fragment parent
@@ -43,12 +46,24 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
     
     // Planche actuellement sélectionnée
     private var selectedPlanche: PlancheOverlay? = null
+    
+    // Configuration actuellement sélectionnée (pour le système d'ancrage)
+    private var selectedConfiguration: PlancheConfiguration? = null
 
     interface PlanchesBottomSheetCallback {
         fun onPlancheSelected(planche: File)
         fun onPlancheUpdated(planche: PlancheOverlay)
         fun onPlancheRemoved(planche: PlancheOverlay)
         fun onAddPlancheRequested()
+        
+        // Nouvelles méthodes pour le système d'ancrage
+        fun anchorPlancheAtCurrentPosition(plancheId: String)
+        fun unanchorPlanche(plancheId: String)
+        fun enterAnchorEditMode(plancheId: String)
+        fun exitAnchorEditMode()
+        fun saveCurrentConfiguration(name: String): Boolean
+        fun loadConfiguration(fileName: String): Boolean
+        fun getAvailableConfigurations(): List<ConfigurationInfo>
     }
 
     override fun onAttach(context: Context) {
@@ -94,6 +109,7 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
         // Initialiser les vues
         recyclerView = view.findViewById(R.id.planches_recycler_view)
         addPlancheButton = view.findViewById(R.id.add_planche_button)
+        manageConfigsButton = view.findViewById(R.id.manage_configs_button)
         controlsSection = view.findViewById(R.id.planche_controls_section)
         
         // Initialiser les contrôles
@@ -105,6 +121,8 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
         opacityValue = view.findViewById(R.id.opacity_value)
         savePositionButton = view.findViewById(R.id.save_position_button)
         removePlancheButton = view.findViewById(R.id.remove_planche_button)
+        anchorButton = view.findViewById(R.id.anchor_button)
+        editAnchorButton = view.findViewById(R.id.edit_anchor_button)
         closeControlsButton = view.findViewById(R.id.close_controls_button)
         
         // Configurer le RecyclerView
@@ -117,6 +135,11 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
         // Configurer le bouton d'ajout
         addPlancheButton.setOnClickListener {
             callback?.onAddPlancheRequested()
+        }
+        
+        // Configurer le bouton de gestion des configurations
+        manageConfigsButton.setOnClickListener {
+            showConfigurationManager()
         }
         
         // Configurer les écouteurs de changement pour les sliders
@@ -133,9 +156,16 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
         rotationSlider.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 rotationValue.text = String.format(Locale.getDefault(), "%.0f°", value)
+                
+                // Mettre à jour l'overlay
                 selectedPlanche?.let {
                     it.rotation = value
                     callback?.onPlancheUpdated(it)
+                }
+                
+                // Mettre à jour la configuration
+                selectedConfiguration?.let {
+                    it.rotation = value
                 }
             }
         }
@@ -143,9 +173,16 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
         scaleSlider.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 scaleValue.text = String.format(Locale.getDefault(), "%d%%", (value * 100).toInt())
+                
+                // Mettre à jour l'overlay
                 selectedPlanche?.let {
                     it.scale = value
                     callback?.onPlancheUpdated(it)
+                }
+                
+                // Mettre à jour la configuration
+                selectedConfiguration?.let {
+                    it.scale = value
                 }
             }
         }
@@ -153,9 +190,16 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
         opacitySlider.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 opacityValue.text = String.format(Locale.getDefault(), "%d%%", (value * 100).toInt())
+                
+                // Mettre à jour l'overlay
                 selectedPlanche?.let {
                     it.opacity = value
                     callback?.onPlancheUpdated(it)
+                }
+                
+                // Mettre à jour la configuration
+                selectedConfiguration?.let {
+                    it.opacity = value
                 }
             }
         }
@@ -172,12 +216,37 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
             selectedPlanche?.let {
                 callback?.onPlancheRemoved(it)
                 selectedPlanche = null
+                selectedConfiguration = null
                 controlsSection.visibility = View.GONE
+            }
+        }
+        
+        anchorButton.setOnClickListener {
+            selectedConfiguration?.let { config ->
+                if (config.isAnchored) {
+                    // Désancrer la planche
+                    callback?.unanchorPlanche(config.id)
+                    config.isAnchored = false
+                    updateAnchorControls(config)
+                } else {
+                    // Ancrer la planche à la position actuelle
+                    callback?.anchorPlancheAtCurrentPosition(config.id)
+                    config.isAnchored = true
+                    updateAnchorControls(config)
+                }
+            }
+        }
+        
+        editAnchorButton.setOnClickListener {
+            selectedConfiguration?.let { config ->
+                callback?.enterAnchorEditMode(config.id)
             }
         }
         
         closeControlsButton.setOnClickListener {
             controlsSection.visibility = View.GONE
+            // Sortir du mode d'édition d'ancrage si nécessaire
+            callback?.exitAnchorEditMode()
         }
     }
     
@@ -224,6 +293,7 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
     // Afficher les contrôles pour une planche sélectionnée
     fun showControlsForPlanche(planche: PlancheOverlay) {
         selectedPlanche = planche
+        selectedConfiguration = null // Réinitialiser la configuration
         
         // Mettre à jour les valeurs des sliders
         rotationSlider.value = planche.rotation
@@ -237,6 +307,60 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
         
         // Afficher la section des contrôles
         controlsSection.visibility = View.VISIBLE
+    }
+    
+    // Afficher les contrôles pour une configuration (système d'ancrage)
+    fun showControlsForConfiguration(configuration: PlancheConfiguration) {
+        selectedConfiguration = configuration
+        selectedPlanche = configuration.toPlancheOverlay() // Compatibilité
+        
+        // Mettre à jour les valeurs des sliders
+        rotationSlider.value = configuration.rotation
+        scaleSlider.value = configuration.scale
+        opacitySlider.value = configuration.opacity
+        
+        // Mettre à jour les textes des valeurs
+        rotationValue.text = String.format(Locale.getDefault(), "%.0f°", configuration.rotation)
+        scaleValue.text = String.format(Locale.getDefault(), "%d%%", (configuration.scale * 100).toInt())
+        opacityValue.text = String.format(Locale.getDefault(), "%d%%", (configuration.opacity * 100).toInt())
+        
+        // Afficher la section des contrôles
+        controlsSection.visibility = View.VISIBLE
+        
+        // Mettre à jour l'interface d'ancrage si nécessaire
+        updateAnchorControls(configuration)
+    }
+    
+    // Mettre à jour les contrôles d'ancrage
+    private fun updateAnchorControls(configuration: PlancheConfiguration) {
+        if (configuration.isAnchored) {
+            // Planche ancrée
+            anchorButton.text = "Désancrer"
+            anchorButton.setTextColor(android.graphics.Color.parseColor("#FF5555"))
+            savePositionButton.text = "Position ancrée"
+            editAnchorButton.isEnabled = true
+        } else {
+            // Planche non ancrée
+            anchorButton.text = "Ancrer"
+            anchorButton.setTextColor(android.graphics.Color.WHITE)
+            savePositionButton.text = "Sauver"
+            editAnchorButton.isEnabled = false
+        }
+    }
+    
+    // Afficher le gestionnaire de configurations
+    private fun showConfigurationManager() {
+        val dialog = ConfigurationManagerDialog.newInstance()
+        dialog.show(childFragmentManager, ConfigurationManagerDialog.TAG)
+    }
+    
+    // Callbacks pour le gestionnaire de configurations
+    override fun onConfigurationSelected(fileName: String) {
+        callback?.loadConfiguration(fileName)
+    }
+    
+    override fun onConfigurationSaved(name: String) {
+        callback?.saveCurrentConfiguration(name)
     }
     
     companion object {

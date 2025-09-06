@@ -19,6 +19,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import com.example.quarrymap.BuildConfig
 import com.example.quarrymap.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -119,6 +120,11 @@ class MainActivity : AppCompatActivity() {
         // Mettre à jour le référencement du bouton d'ajout
         binding.addButton.setOnClickListener {
             showUploadOptions()
+        }
+        
+        // Tester le système d'ancrage en mode debug
+        if (BuildConfig.DEBUG) {
+            testAnchoringSystem()
         }
         
         checkNetworkStatus()
@@ -612,12 +618,49 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Gérer le bouton retour pour la navigation dans la WebView
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         val currentFragment = supportFragmentManager.findFragmentById(R.id.container)
         if (currentFragment is MapFragment && currentFragment.canGoBack()) {
             currentFragment.goBack()
         } else {
+            @Suppress("DEPRECATION")
             super.onBackPressed()
+        }
+    }
+    
+    // Tester le système d'ancrage (uniquement en mode debug)
+    private fun testAnchoringSystem() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val tester = AnchoringSystemTester(this@MainActivity)
+                val results = tester.runAllTests()
+                
+                withContext(Dispatchers.Main) {
+                    if (results.allPassed()) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "✅ Tests d'ancrage réussis (${results.passedCount()}/4)",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "⚠️ Tests d'ancrage partiels (${results.passedCount()}/4)",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Erreur lors des tests d'ancrage", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "❌ Erreur lors des tests d'ancrage",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
         }
     }
 }
