@@ -20,11 +20,12 @@ import com.google.android.material.slider.Slider
 import java.io.File
 import java.util.Locale
 
-class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
+class PlanchesBottomSheetFragment : BottomSheetDialogFragment(), ConfigurationManagerDialog.ConfigurationManagerCallback {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: PlancheBottomSheetAdapter
     private lateinit var addPlancheButton: MaterialButton
+    private lateinit var manageConfigsButton: MaterialButton
     private lateinit var controlsSection: ConstraintLayout
     
     // Contrôles de la planche
@@ -108,6 +109,7 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
         // Initialiser les vues
         recyclerView = view.findViewById(R.id.planches_recycler_view)
         addPlancheButton = view.findViewById(R.id.add_planche_button)
+        manageConfigsButton = view.findViewById(R.id.manage_configs_button)
         controlsSection = view.findViewById(R.id.planche_controls_section)
         
         // Initialiser les contrôles
@@ -133,6 +135,11 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
         // Configurer le bouton d'ajout
         addPlancheButton.setOnClickListener {
             callback?.onAddPlancheRequested()
+        }
+        
+        // Configurer le bouton de gestion des configurations
+        manageConfigsButton.setOnClickListener {
+            showConfigurationManager()
         }
         
         // Configurer les écouteurs de changement pour les sliders
@@ -339,6 +346,21 @@ class PlanchesBottomSheetFragment : BottomSheetDialogFragment() {
             savePositionButton.text = "Sauver"
             editAnchorButton.isEnabled = false
         }
+    }
+    
+    // Afficher le gestionnaire de configurations
+    private fun showConfigurationManager() {
+        val dialog = ConfigurationManagerDialog.newInstance()
+        dialog.show(childFragmentManager, ConfigurationManagerDialog.TAG)
+    }
+    
+    // Callbacks pour le gestionnaire de configurations
+    override fun onConfigurationSelected(fileName: String) {
+        callback?.loadConfiguration(fileName)
+    }
+    
+    override fun onConfigurationSaved(name: String) {
+        callback?.saveCurrentConfiguration(name)
     }
     
     companion object {
