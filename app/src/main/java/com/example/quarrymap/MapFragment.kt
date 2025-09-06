@@ -45,6 +45,12 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
     // Liste des planches affichées sur la carte
     private val activePlanches = mutableListOf<PlancheOverlay>()
     
+    // Gestionnaire de configuration pour la persistance
+    private lateinit var configurationManager: ConfigurationManager
+    
+    // Configurations actives avec système d'ancrage
+    private val activeConfigurations = mutableListOf<PlancheConfiguration>()
+    
     // Instance de la bottom sheet
     private var planchesBottomSheet: PlanchesBottomSheetFragment? = null
 
@@ -59,6 +65,9 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        // Initialiser le gestionnaire de configuration
+        configurationManager = ConfigurationManager(requireContext())
         
         coordinatesTextView = binding.coordinatesText
         coordinatesContainer = binding.coordinatesContainer
@@ -125,6 +134,9 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                 super.onPageFinished(view, url)
                 Log.d(TAG, "Page chargée: $url")
                 isWebViewInitialized = true
+                
+                // Charger la session auto-sauvegardée
+                loadAutoSavedSession()
                 
                 // Ajouter toutes les planches actives à la carte après chargement
                 activePlanches.forEach { planche ->
@@ -225,7 +237,7 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                             pointer-events: none;
                         }
                         
-                        /* Styles pour l'overlay de planche */
+                        /* Styles pour l'overlay de planche avec système d'ancrage */
                         .planche-overlay {
                             position: absolute;
                             transform-origin: center;
@@ -242,12 +254,84 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                             border: 2px solid rgba(255, 255, 255, 0.2);
                         }
                         
+                        .planche-overlay.anchored {
+                            border: 2px solid rgba(0, 255, 0, 0.6);
+                            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+                        }
+                        
+                        .planche-overlay.selected {
+                            border: 2px solid rgba(255, 255, 0, 0.8);
+                            box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);
+                            z-index: 999;
+                        }
+                        
                         .planche-overlay img {
                             display: block;
                             width: 100%;
                             height: 100%;
                             object-fit: contain;
                             pointer-events: none;
+                        }
+                        
+                        /* Points d'ancrage */
+                        .anchor-point {
+                            position: absolute;
+                            width: 12px;
+                            height: 12px;
+                            background: rgba(255, 0, 0, 0.8);
+                            border: 2px solid white;
+                            border-radius: 50%;
+                            cursor: pointer;
+                            z-index: 1000;
+                            transform: translate(-50%, -50%);
+                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                        }
+                        
+                        .anchor-point.active {
+                            background: rgba(0, 255, 0, 0.8);
+                            animation: pulse 1.5s ease-in-out infinite;
+                        }
+                        
+                        .anchor-point.center-anchor {
+                            background: rgba(0, 100, 255, 0.8);
+                            width: 8px;
+                            height: 8px;
+                        }
+                        
+                        @keyframes pulse {
+                            0% { transform: translate(-50%, -50%) scale(1); }
+                            50% { transform: translate(-50%, -50%) scale(1.3); }
+                            100% { transform: translate(-50%, -50%) scale(1); }
+                        }
+                        
+                        /* Mode d'édition d'ancrage */
+                        .anchor-edit-mode .planche-overlay {
+                            border: 2px dashed rgba(255, 255, 0, 0.8);
+                            cursor: crosshair;
+                        }
+                        
+                        .anchor-edit-mode .anchor-point {
+                            display: block;
+                        }
+                        
+                        /* Grille d'aide pour l'ancrage */
+                        .anchor-grid {
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            pointer-events: none;
+                            z-index: 998;
+                            background-image: 
+                                linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                                linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+                            background-size: 20px 20px;
+                            display: none;
+                        }
+                        
+                        .anchor-edit-mode .anchor-grid {
+                            display: block;
                         }
                     </style>
                 </head>
@@ -257,6 +341,7 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                         <div class="marker-pulse"></div>
                     </div>
                     <div id="overlay-container"></div>
+                    <div class="anchor-grid" id="anchor-grid"></div>
                     <script>
                         // Initialiser la carte
                         var map = L.map('map', {
@@ -276,6 +361,8 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                         var activeOverlay = null;
                         var startX, startY;
                         var offsetX, offsetY;
+                        var isAnchorEditMode = false;
+                        var selectedOverlayId = null;
                         
                         // Fonction pour ajouter des marqueurs (à appeler depuis Android)
                         function addMarkers(markersJson) {
@@ -293,9 +380,9 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                             Android.onCenterCoordinatesChanged(center.lat, center.lng);
                         }
                         
-                        // Fonction pour ajouter une planche à la carte
-                        function addPlancheOverlay(id, imagePath, lat, lng, rotation, scale, opacity) {
-                            console.log("Ajout d'une planche:", id, imagePath);
+                        // Fonction pour ajouter une planche à la carte avec système d'ancrage
+                        function addPlancheOverlay(id, imagePath, lat, lng, rotation, scale, opacity, isAnchored, anchorMode) {
+                            console.log("Ajout d'une planche avec ancrage:", id, imagePath, "Ancré:", isAnchored);
                             
                             try {
                                 // Supprimer l'overlay existant avec le même ID s'il existe
@@ -307,7 +394,7 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                                 
                                 // Créer l'élément pour l'overlay
                                 const overlay = document.createElement('div');
-                                overlay.className = 'planche-overlay';
+                                overlay.className = 'planche-overlay' + (isAnchored ? ' anchored' : '');
                                 overlay.id = 'planche-' + id;
                                 overlay.style.opacity = opacity;
                                 overlay.style.transform = 'translate(-50%, -50%) rotate(' + rotation + 'deg) scale(' + scale + ')';
@@ -329,23 +416,24 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                                     
                                     // Après le chargement, adapter la taille en fonction de l'image
                                     var aspectRatio = img.naturalWidth / img.naturalHeight;
-                                    var maxWidth = window.innerWidth * 0.7; // 70% de la largeur d'écran
-                                    var maxHeight = window.innerHeight * 0.7; // 70% de la hauteur d'écran
+                                    var maxWidth = window.innerWidth * 0.7;
+                                    var maxHeight = window.innerHeight * 0.7;
                                     
                                     var finalWidth, finalHeight;
                                     
                                     if (aspectRatio > 1) {
-                                        // Image plus large que haute
                                         finalWidth = Math.min(img.naturalWidth, maxWidth);
                                         finalHeight = finalWidth / aspectRatio;
                                     } else {
-                                        // Image plus haute que large
                                         finalHeight = Math.min(img.naturalHeight, maxHeight);
                                         finalWidth = finalHeight * aspectRatio;
                                     }
                                     
                                     overlay.style.width = finalWidth + 'px';
                                     overlay.style.height = finalHeight + 'px';
+                                    
+                                    // Créer le point d'ancrage central par défaut
+                                    createCenterAnchorPoint(overlay);
                                     
                                     // Mettre à jour la position après avoir défini la taille
                                     updateOverlayPosition(id, lat, lng);
@@ -360,6 +448,7 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                                 // Ajouter les gestionnaires d'événements
                                 overlay.addEventListener('mousedown', startDrag);
                                 overlay.addEventListener('touchstart', startDrag, { passive: false });
+                                overlay.addEventListener('click', selectOverlay);
                                 
                                 // Stocker les références
                                 plancheOverlays[id] = {
@@ -369,7 +458,10 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                                     lng: lng,
                                     rotation: rotation,
                                     scale: scale,
-                                    opacity: opacity
+                                    opacity: opacity,
+                                    isAnchored: isAnchored || false,
+                                    anchorMode: anchorMode || 'CENTER',
+                                    anchorPoints: []
                                 };
                                 
                                 // Mettre à jour la position
@@ -381,6 +473,147 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                                 Android.onPlancheError(id, "Erreur: " + e.message);
                                 return false;
                             }
+                        }
+                        
+                        // Créer un point d'ancrage central
+                        function createCenterAnchorPoint(overlay) {
+                            const centerAnchor = document.createElement('div');
+                            centerAnchor.className = 'anchor-point center-anchor';
+                            centerAnchor.style.left = '50%';
+                            centerAnchor.style.top = '50%';
+                            centerAnchor.title = 'Point d\\'ancrage central';
+                            
+                            centerAnchor.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                setActiveAnchorPoint(this);
+                            });
+                            
+                            overlay.appendChild(centerAnchor);
+                        }
+                        
+                        // Sélectionner un overlay
+                        function selectOverlay(e) {
+                            e.stopPropagation();
+                            const overlayId = this.id.replace('planche-', '');
+                            
+                            // Désélectionner tous les autres overlays
+                            Object.keys(plancheOverlays).forEach(id => {
+                                plancheOverlays[id].element.classList.remove('selected');
+                            });
+                            
+                            // Sélectionner celui-ci
+                            this.classList.add('selected');
+                            selectedOverlayId = overlayId;
+                            
+                            // Notifier Android de la sélection
+                            Android.onPlancheSelected(overlayId);
+                        }
+                        
+                        // Entrer en mode d'édition d'ancrage
+                        function enterAnchorEditMode(overlayId) {
+                            isAnchorEditMode = true;
+                            selectedOverlayId = overlayId;
+                            
+                            const container = document.getElementById('overlay-container');
+                            container.classList.add('anchor-edit-mode');
+                            
+                            const overlay = plancheOverlays[overlayId];
+                            if (overlay) {
+                                overlay.element.classList.add('selected');
+                            }
+                            
+                            console.log('Mode d\\'édition d\\'ancrage activé pour:', overlayId);
+                        }
+                        
+                        // Sortir du mode d'édition d'ancrage
+                        function exitAnchorEditMode() {
+                            isAnchorEditMode = false;
+                            selectedOverlayId = null;
+                            
+                            const container = document.getElementById('overlay-container');
+                            container.classList.remove('anchor-edit-mode');
+                            
+                            // Désélectionner tous les overlays
+                            Object.keys(plancheOverlays).forEach(id => {
+                                plancheOverlays[id].element.classList.remove('selected');
+                            });
+                            
+                            console.log('Mode d\\'édition d\\'ancrage désactivé');
+                        }
+                        
+                        // Ajouter un point d'ancrage personnalisé
+                        function addCustomAnchorPoint(overlayId, localX, localY, name) {
+                            const overlay = plancheOverlays[overlayId];
+                            if (!overlay) return false;
+                            
+                            const anchorPoint = document.createElement('div');
+                            anchorPoint.className = 'anchor-point';
+                            anchorPoint.style.left = (localX * 100) + '%';
+                            anchorPoint.style.top = (localY * 100) + '%';
+                            anchorPoint.title = name || 'Point d\\'ancrage';
+                            
+                            anchorPoint.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                setActiveAnchorPoint(this);
+                            });
+                            
+                            overlay.element.appendChild(anchorPoint);
+                            
+                            // Ajouter aux données de l'overlay
+                            const anchorData = {
+                                element: anchorPoint,
+                                localX: localX,
+                                localY: localY,
+                                name: name || 'Point d\\'ancrage'
+                            };
+                            
+                            overlay.anchorPoints.push(anchorData);
+                            
+                            return true;
+                        }
+                        
+                        // Définir un point d'ancrage comme actif
+                        function setActiveAnchorPoint(anchorElement) {
+                            // Désactiver tous les points d'ancrage
+                            document.querySelectorAll('.anchor-point').forEach(point => {
+                                point.classList.remove('active');
+                            });
+                            
+                            // Activer celui-ci
+                            anchorElement.classList.add('active');
+                            
+                            console.log('Point d\\'ancrage activé:', anchorElement.title);
+                        }
+                        
+                        // Ancrer une planche à un point géographique
+                        function anchorPlancheToPosition(overlayId, lat, lng) {
+                            const overlay = plancheOverlays[overlayId];
+                            if (!overlay) return false;
+                            
+                            overlay.isAnchored = true;
+                            overlay.element.classList.add('anchored');
+                            
+                            // Mettre à jour la position
+                            updateOverlayPosition(overlayId, lat, lng);
+                            
+                            // Notifier Android
+                            Android.onPlancheAnchored(overlayId, lat, lng);
+                            
+                            return true;
+                        }
+                        
+                        // Désancrer une planche
+                        function unanchorPlanche(overlayId) {
+                            const overlay = plancheOverlays[overlayId];
+                            if (!overlay) return false;
+                            
+                            overlay.isAnchored = false;
+                            overlay.element.classList.remove('anchored');
+                            
+                            // Notifier Android
+                            Android.onPlancheUnanchored(overlayId);
+                            
+                            return true;
                         }
                         
                         // Mettre à jour la position d'une planche
@@ -608,6 +841,54 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                     it.latitude = lat
                     it.longitude = lng
                 }
+                
+                // Mettre à jour la configuration correspondante
+                val config = activeConfigurations.find { it.id == id }
+                config?.let {
+                    it.latitude = lat
+                    it.longitude = lng
+                    // Auto-sauvegarde
+                    configurationManager.autoSaveSession(activeConfigurations)
+                }
+            }
+        }
+        
+        @JavascriptInterface
+        fun onPlancheSelected(id: String) {
+            Log.d(TAG, "Planche sélectionnée: ID=$id")
+            activity?.runOnUiThread {
+                val config = activeConfigurations.find { it.id == id }
+                config?.let {
+                    planchesBottomSheet?.showControlsForConfiguration(it)
+                }
+            }
+        }
+        
+        @JavascriptInterface
+        fun onPlancheAnchored(id: String, lat: Double, lng: Double) {
+            Log.d(TAG, "Planche ancrée: ID=$id, Lat=$lat, Lng=$lng")
+            activity?.runOnUiThread {
+                val config = activeConfigurations.find { it.id == id }
+                config?.let {
+                    it.isAnchored = true
+                    it.latitude = lat
+                    it.longitude = lng
+                    configurationManager.autoSaveSession(activeConfigurations)
+                    Toast.makeText(context, "Planche ancrée avec succès", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        
+        @JavascriptInterface
+        fun onPlancheUnanchored(id: String) {
+            Log.d(TAG, "Planche désancrée: ID=$id")
+            activity?.runOnUiThread {
+                val config = activeConfigurations.find { it.id == id }
+                config?.let {
+                    it.isAnchored = false
+                    configurationManager.autoSaveSession(activeConfigurations)
+                    Toast.makeText(context, "Planche désancrée", Toast.LENGTH_SHORT).show()
+                }
             }
         }
         
@@ -621,6 +902,12 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                 val plancheToRemove = activePlanches.find { it.id == id }
                 plancheToRemove?.let {
                     activePlanches.remove(it)
+                }
+                
+                // Supprimer également de la configuration
+                val configToRemove = activeConfigurations.find { it.id == id }
+                configToRemove?.let {
+                    activeConfigurations.remove(it)
                 }
             }
         }
@@ -660,8 +947,27 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
         planchesBottomSheet?.show(childFragmentManager, PlanchesBottomSheetFragment.TAG)
     }
     
-    // Ajouter une planche overlay à la carte
-    fun addOverlayToMap(planche: PlancheOverlay) {
+    // Charger la session auto-sauvegardée
+    private fun loadAutoSavedSession() {
+        val savedConfigurations = configurationManager.loadAutoSavedSession()
+        if (savedConfigurations.isNotEmpty()) {
+            Log.d(TAG, "Chargement de ${savedConfigurations.size} configurations sauvegardées")
+            
+            activeConfigurations.clear()
+            activeConfigurations.addAll(savedConfigurations)
+            
+            // Convertir les configurations en overlays pour la compatibilité
+            activePlanches.clear()
+            activeConfigurations.forEach { config ->
+                activePlanches.add(config.toPlancheOverlay())
+            }
+            
+            // Les overlays seront ajoutés à la carte dans onPageFinished
+        }
+    }
+    
+    // Ajouter une planche overlay à la carte avec support d'ancrage
+    fun addOverlayToMap(planche: PlancheOverlay, configuration: PlancheConfiguration? = null) {
         if (!isWebViewInitialized) {
             Log.d(TAG, "WebView non initialisée, impossible d'ajouter l'overlay")
             return
@@ -678,6 +984,8 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
         val contentUri = Uri.fromFile(planche.plancheFile).toString()
         Log.d(TAG, "Ajout d'une planche à la carte: ${planche.plancheFile.name}, URI: $contentUri")
         
+        val config = configuration ?: PlancheConfiguration.fromOverlay(planche)
+        
         val script = """
             addPlancheOverlay(
                 "${planche.id}",
@@ -686,7 +994,9 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                 ${planche.longitude},
                 ${planche.rotation},
                 ${planche.scale},
-                ${planche.opacity}
+                ${planche.opacity},
+                ${config.isAnchored},
+                "${config.anchorMode}"
             );
         """.trimIndent()
         
@@ -697,6 +1007,14 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
                 if (activePlanches.none { it.id == planche.id }) {
                     activePlanches.add(planche)
                 }
+                
+                // Ajouter la configuration si elle n'y est pas déjà
+                if (activeConfigurations.none { it.id == config.id }) {
+                    activeConfigurations.add(config)
+                }
+                
+                // Auto-sauvegarde
+                configurationManager.autoSaveSession(activeConfigurations)
             } else {
                 Log.e(TAG, "Échec de l'ajout de la planche: ${planche.plancheFile.name}")
                 Toast.makeText(context, "Échec de l'ajout de la planche: ${planche.plancheFile.name}", Toast.LENGTH_SHORT).show()
@@ -737,38 +1055,104 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
         }
     }
     
-    // Déplacer une planche au centre de la carte
-    private fun movePlancheToCenter(planche: PlancheOverlay) {
+    // Ancrer une planche à la position actuelle
+    fun anchorPlancheAtPosition(plancheId: String) {
         if (!isWebViewInitialized) return
         
         val script = """
-            movePlancheToCenter("${planche.id}")
+            anchorPlancheToPosition("$plancheId", $currentLatitude, $currentLongitude)
         """.trimIndent()
         
         mapWebView.evaluateJavascript(script) { result ->
-            if (result != "null") {
-                try {
-                    // Format attendu: {"lat":12.34,"lng":56.78}
-                    val jsonStr = result.trim('"')
-                    val latStart = jsonStr.indexOf("lat\":") + 5
-                    val latEnd = jsonStr.indexOf(",", latStart)
-                    val lngStart = jsonStr.indexOf("lng\":") + 5
-                    val lngEnd = jsonStr.indexOf("}", lngStart)
-                    
-                    val lat = jsonStr.substring(latStart, latEnd).toDouble()
-                    val lng = jsonStr.substring(lngStart, lngEnd).toDouble()
-                    
-                    planche.latitude = lat
-                    planche.longitude = lng
-                    
-                    // Afficher les contrôles de la planche
-                    planchesBottomSheet?.showControlsForPlanche(planche)
-                    
-                } catch (e: Exception) {
-                    Log.e(TAG, "Erreur lors de l'analyse de la position de la planche", e)
-                }
-            }
+            Log.d(TAG, "Résultat de l'ancrage: $result")
         }
+    }
+    
+    // Désancrer une planche
+    fun unanchorPlancheFromMap(plancheId: String) {
+        if (!isWebViewInitialized) return
+        
+        val script = """
+            unanchorPlanche("$plancheId")
+        """.trimIndent()
+        
+        mapWebView.evaluateJavascript(script) { result ->
+            Log.d(TAG, "Résultat du désancrage: $result")
+        }
+    }
+    
+    // Entrer en mode d'édition d'ancrage
+    fun enterAnchorEditModeForPlanche(plancheId: String) {
+        if (!isWebViewInitialized) return
+        
+        val script = """
+            enterAnchorEditMode("$plancheId")
+        """.trimIndent()
+        
+        mapWebView.evaluateJavascript(script) { result ->
+            Log.d(TAG, "Mode d'ancrage activé pour: $plancheId")
+        }
+    }
+    
+    // Sortir du mode d'édition d'ancrage
+    fun exitAnchorEditModeFromMap() {
+        if (!isWebViewInitialized) return
+        
+        val script = """
+            exitAnchorEditMode()
+        """.trimIndent()
+        
+        mapWebView.evaluateJavascript(script) { result ->
+            Log.d(TAG, "Mode d'ancrage désactivé")
+        }
+    }
+    
+    // Sauvegarder la configuration actuelle
+    fun saveActiveConfiguration(name: String): Boolean {
+        return configurationManager.saveConfiguration(name, activeConfigurations)
+    }
+    
+    // Charger une configuration sauvegardée
+    fun loadSavedConfiguration(fileName: String): Boolean {
+        val result = configurationManager.loadConfiguration(fileName)
+        return if (result != null) {
+            val (name, configurations) = result
+            
+            // Effacer les planches actuelles
+            clearAllOverlays()
+            
+            // Charger les nouvelles configurations
+            activeConfigurations.clear()
+            activeConfigurations.addAll(configurations)
+            
+            // Convertir et ajouter les overlays
+            activePlanches.clear()
+            configurations.forEach { config ->
+                val overlay = config.toPlancheOverlay()
+                activePlanches.add(overlay)
+                addOverlayToMap(overlay, config)
+            }
+            
+            Toast.makeText(context, "Configuration '$name' chargée", Toast.LENGTH_SHORT).show()
+            true
+        } else {
+            Toast.makeText(context, "Erreur lors du chargement de la configuration", Toast.LENGTH_SHORT).show()
+            false
+        }
+    }
+    
+    // Effacer tous les overlays
+    private fun clearAllOverlays() {
+        activePlanches.forEach { planche ->
+            removeOverlayFromMap(planche)
+        }
+        activePlanches.clear()
+        activeConfigurations.clear()
+    }
+    
+    // Obtenir la liste des configurations sauvegardées
+    fun getStoredConfigurations(): List<ConfigurationInfo> {
+        return configurationManager.listConfigurations()
     }
     
     // Gérer les événements tactiles pour la manipulation des planches
@@ -791,19 +1175,30 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
             longitude = currentLongitude
         )
         
+        // Créer une configuration correspondante
+        val configuration = PlancheConfiguration.fromOverlay(overlay)
+        
         // Ajouter à la liste des planches actives
         activePlanches.add(overlay)
+        activeConfigurations.add(configuration)
         
         // Ajouter à la carte
-        addOverlayToMap(overlay)
+        addOverlayToMap(overlay, configuration)
         
         // Afficher les contrôles de la planche
-        planchesBottomSheet?.showControlsForPlanche(overlay)
+        planchesBottomSheet?.showControlsForConfiguration(configuration)
     }
     
     override fun onPlancheUpdated(planche: PlancheOverlay) {
         // Mettre à jour la planche sur la carte
         updateOverlayOnMap(planche)
+        
+        // Mettre à jour la configuration correspondante
+        val config = activeConfigurations.find { it.id == planche.id }
+        config?.updateFromOverlay(planche)
+        
+        // Auto-sauvegarde
+        configurationManager.autoSaveSession(activeConfigurations)
     }
     
     override fun onPlancheRemoved(planche: PlancheOverlay) {
@@ -812,11 +1207,46 @@ class MapFragment : Fragment(), PlanchesBottomSheetFragment.PlanchesBottomSheetC
         
         // Retirer de la liste des planches actives
         activePlanches.remove(planche)
+        
+        // Retirer de la liste des configurations actives
+        activeConfigurations.removeIf { it.id == planche.id }
+        
+        // Auto-sauvegarde
+        configurationManager.autoSaveSession(activeConfigurations)
     }
     
     override fun onAddPlancheRequested() {
         // Ouvrir un dialogue de sélection de fichier
         (activity as? MainActivity)?.openFolderPicker()
+    }
+    
+    // Nouvelles méthodes pour le système d'ancrage
+    override fun anchorPlancheAtCurrentPosition(plancheId: String) {
+        anchorPlancheAtPosition(plancheId)
+    }
+    
+    override fun unanchorPlanche(plancheId: String) {
+        unanchorPlancheFromMap(plancheId)
+    }
+    
+    override fun enterAnchorEditMode(plancheId: String) {
+        enterAnchorEditModeForPlanche(plancheId)
+    }
+    
+    override fun exitAnchorEditMode() {
+        exitAnchorEditModeFromMap()
+    }
+    
+    override fun saveCurrentConfiguration(name: String): Boolean {
+        return saveActiveConfiguration(name)
+    }
+    
+    override fun loadConfiguration(fileName: String): Boolean {
+        return loadSavedConfiguration(fileName)
+    }
+    
+    override fun getAvailableConfigurations(): List<ConfigurationInfo> {
+        return getStoredConfigurations()
     }
     
     // Vérifier si la WebView peut revenir en arrière
